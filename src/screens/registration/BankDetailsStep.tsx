@@ -19,7 +19,9 @@ interface BankDetailsFormData {
   branchName: string;
   ifscCode: string;
   accountType: string;
-  isGstBillingApplicable: boolean;
+  isGstBillingApplicable: boolean | 'true' | 'false';
+  // NEW FIELD (we'll update slice types separately)
+  relationshipWithAccountHolder: string;
 }
 
 const accountTypeOptions = [
@@ -31,6 +33,15 @@ const accountTypeOptions = [
 const gstOptions = [
   { label: 'Yes', value: 'true' },
   { label: 'No', value: 'false' },
+];
+
+// NEW: exact options like web
+const relationshipOptions = [
+  { label: 'Self', value: 'Self' },
+  { label: 'Company', value: 'Company' },
+  { label: 'Spouse', value: 'Spouse' },
+  { label: 'Parent', value: 'Parent' },
+  { label: 'Others', value: 'Others' },
 ];
 
 const BankDetailsStep: React.FC = () => {
@@ -54,8 +65,10 @@ const BankDetailsStep: React.FC = () => {
     resolver: yupResolver(bankDetailsSchema),
     defaultValues: {
       ...bankDetails,
-      isGstBillingApplicable: bankDetails.isGstBillingApplicable || false,
-    },
+      isGstBillingApplicable: (bankDetails as any)?.isGstBillingApplicable ?? false,
+      // NEW default (until slice updated)
+      relationshipWithAccountHolder: (bankDetails as any)?.relationshipWithAccountHolder ?? '',
+    } as any,
   });
 
   const watchedAccountType = watch('accountType');
@@ -68,10 +81,16 @@ const BankDetailsStep: React.FC = () => {
   }));
 
   const onSubmit = (data: BankDetailsFormData) => {
+    const isGstBool =
+      data.isGstBillingApplicable === true || data.isGstBillingApplicable === 'true';
+
+    // NOTE: We cast to any until slice types include `relationshipWithAccountHolder`
     dispatch(updateBankDetails({
       ...data,
-      isGstBillingApplicable: data.isGstBillingApplicable === true || data.isGstBillingApplicable === 'true',
-    }));
+      isGstBillingApplicable: isGstBool,
+      relationshipWithAccountHolder: data.relationshipWithAccountHolder,
+    } as any));
+
     dispatch(setCurrentStep(5));
   };
 
@@ -153,6 +172,17 @@ const BankDetailsStep: React.FC = () => {
           required
         />
 
+        {/* NEW: Relationship with Account Holder (required) */}
+        <CustomDropdown
+          label="Relationship with Account Holder"
+          value={watch('relationshipWithAccountHolder')}
+          options={relationshipOptions}
+          onSelect={(value) => setValue('relationshipWithAccountHolder', value)}
+          placeholder="Select relationship"
+          error={(errors as any).relationshipWithAccountHolder?.message}
+          required
+        />
+
         {showGstOption && (
           <CustomDropdown
             label="GST Billing Applicable"
@@ -160,7 +190,7 @@ const BankDetailsStep: React.FC = () => {
             options={gstOptions}
             onSelect={(value) => setValue('isGstBillingApplicable', value === 'true')}
             placeholder="Select GST billing preference"
-            error={errors.isGstBillingApplicable?.message}
+            error={(errors as any).isGstBillingApplicable?.message}
             required
           />
         )}
@@ -196,12 +226,8 @@ const BankDetailsStep: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
+  container: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,32 +236,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  backButton: {
-    marginRight: 16,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    flex: 1,
-  },
-  content: {
-    padding: 24,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  backButtonStyle: {
-    flex: 1,
-  },
-  continueButton: {
-    flex: 2,
-  },
+  backButton: { marginRight: 16 },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#111827', flex: 1 },
+  content: { padding: 24 },
+  input: { marginBottom: 16 },
+  buttonContainer: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  backButtonStyle: { flex: 1 },
+  continueButton: { flex: 2 },
 });
 
 export default BankDetailsStep;

@@ -1,91 +1,123 @@
 // src/utils/api.ts
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { secureStorage } from './secureStorage';
 
-// If you must hardcode for now (move to HTTPS + env later)
-const getBaseURL = () => 'http://178.236.185.178:5003/api';
+/** ===== Force-override (DEV only) =====
+ * Set this to your LAN IP to always use it during development.
+ * Leave it empty string "" to disable the hard override.
+ */
+const FORCE_DEV_IP_BASE = 'http://178.236.185.178:5003/api/';      // <- your IP (with /api)
 
-const BASE_URL = getBaseURL();
 
+/**
+ * ===== Base URL selection =====
+ * Priority:
+ * 0) FORCE_DEV_IP_BASE (if set and __DEV__)
+ * 1) EXPO_PUBLIC_API_BASE_URL
+ * 2) Dev: infer host for emulator / device and use DEV_PORT
+ * 3) Prod: EXPO_PUBLIC_API_BASE_URL should be set in your prod env
+ */
+const DEV_PORT = Number(process.env.EXPO_PUBLIC_API_PORT || 5003);
+
+const getReachableHost = () => {
+  const expoHost = Constants.expoConfig?.hostUri?.split(':')?.[0];
+  if (expoHost && expoHost !== 'localhost' && expoHost !== '127.0.0.1') {
+    return expoHost;
+  }
+  if (Platform.OS === 'android') return '10.0.2.2';
+  return 'localhost';
+};
+
+const computeBaseURL = () => {
+  // 0) Hard override in DEV
+  if (__DEV__ && FORCE_DEV_IP_BASE.trim()) {
+    return FORCE_DEV_IP_BASE.replace(/\/+$/, '');
+  }
+
+  // 1) Env override
+  const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+  if (envUrl) return envUrl.replace(/\/+$/, '');
+
+  // 2) Infer for dev
+  if (__DEV__) {
+    const host = getReachableHost();
+    return `http://${host}:${DEV_PORT}/api`;
+  }
+
+  // 3) Fallback (prod should set EXPO_PUBLIC_API_BASE_URL)
+  return 'https://your-prod-domain.example.com/api';
+};
+
+const BASE_URL = computeBaseURL();
+
+// ---- Diagnostics ----
 console.log('🌐 [API CONFIG] Base URL:', BASE_URL);
 console.log('🌐 [API CONFIG] Platform:', Platform.OS);
 console.log('🌐 [API CONFIG] Dev mode:', __DEV__);
 console.log('🌐 [API CONFIG] Expo hostUri:', Constants.expoConfig?.hostUri);
 
-// Create axios instance
+// ---- Axios instance ----
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
-  headers: {
-    Accept: 'application/json',
-  },
+  timeout: 120000,
+  headers: { Accept: 'application/json' },
+  maxBodyLength: Infinity as any,
+  maxContentLength: Infinity as any,
 });
 
-// --- IMPORTANT: Remove any global/default Content-Type that could break FormData on RN ---
-try {
-  // Nuke leak-prone defaults on both the global axios and this instance
-  // (these are harmless if they don't exist)
-  delete (axios.defaults.headers as any)?.post?.['Content-Type'];
-  delete (axios.defaults.headers as any)?.common?.['Content-Type'];
-  delete (apiClient.defaults.headers as any)?.post?.['Content-Type'];
-  delete (apiClient.defaults.headers as any)?.common?.['Content-Type'];
-} catch { /* noop */ }
+// ---- Helpers ----
+const isFormData = (data: any): boolean =>
+  typeof FormData !== 'undefined' && data instanceof FormData;
 
-// Request interceptor to add token + set headers correctly
+const ensureHeaders = (config: AxiosRequestConfig) => {
+  if (!config.headers) config.headers = {};
+  return config.headers as Record<string, string>;
+};
+
+// ---- Interceptors ----
 apiClient.interceptors.request.use(
   async (config) => {
-    const method = (config.method ?? '').toUpperCase();
+    const headers = ensureHeaders(config);
+    const isFD = isFormData(config.data);
+    const keepMultipartCT = (config as any)?.keepMultipartContentType === true;
 
     console.log('🚀 [API REQUEST] Starting:', {
-      method,
+      method: (config.method ?? '').toUpperCase(),
       url: config.url,
       baseURL: config.baseURL,
       fullURL: `${config.baseURL}${config.url}`,
       timeout: config.timeout,
       platform: Platform.OS,
       hasData: !!config.data,
-      dataType: config.data
-        ? (typeof FormData !== 'undefined' && config.data instanceof FormData ? 'FormData' : typeof config.data)
-        : 'none',
+      dataType: isFD ? 'FormData' : (config.data ? typeof config.data : 'none'),
     });
 
-    // Attach token
     const token = await secureStorage.getItem('token');
-    if (token) {
-      config.headers = config.headers ?? {};
-      (config.headers as any).Authorization = `Bearer ${token}`;
-    }
+    if (token) headers.Authorization = `Bearer ${token}`;
 
-    // Detect FormData safely
-    const isFormData =
-      typeof FormData !== 'undefined' && config.data instanceof FormData;
-
-    // Never set Content-Type for FormData on React Native — let native layer add boundary
-    if (isFormData) {
-      if (config.headers) {
-        delete (config.headers as any)['Content-Type'];
-        delete (config.headers as any)['content-type'];
+    if (isFD) {
+      if (!keepMultipartCT) {
+        delete headers['Content-Type'];
+        delete headers['content-type'];
       }
+      (config as any).paramsSerializer = undefined;
 
-      // Optional: light logging without touching File/Blob (which may be undefined on RN)
       try {
         // @ts-ignore RN FormData often has a private _parts array
         const parts = (config.data as any)?._parts;
         if (Array.isArray(parts)) {
           console.log('📋 [API REQUEST] FormData keys:', parts.map((p: any) => p?.[0]));
         }
-      } catch { /* noop */ }
+      } catch {}
     } else {
-      // For non-FormData payloads, default to JSON if caller didn't set anything
-      config.headers = config.headers ?? {};
-      if (!( 'Content-Type' in config.headers ) && !( 'content-type' in config.headers )) {
-        (config.headers as any)['Content-Type'] = 'application/json';
+      if (!('Content-Type' in headers) && !('content-type' in headers)) {
+        headers['Content-Type'] = 'application/json';
       }
     }
 
-    console.log('📤 [API REQUEST] Final headers:', config.headers);
+    console.log('📤 [API REQUEST] Final headers:', headers);
     return config;
   },
   (error) => {
@@ -94,7 +126,6 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for logging + basic auth cleanup
 apiClient.interceptors.response.use(
   (response) => {
     console.log('✅ [API RESPONSE] Success:', {
@@ -102,7 +133,10 @@ apiClient.interceptors.response.use(
       url: response.config.url,
       platform: Platform.OS,
       hasData: !!response.data,
-      dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : [],
+      dataKeys:
+        response.data && typeof response.data === 'object'
+          ? Object.keys(response.data)
+          : [],
     });
     return response;
   },
@@ -120,25 +154,22 @@ apiClient.interceptors.response.use(
     });
 
     if (error.response) {
-      const status = error.response.status;
       const message = error.response?.data?.message || error.response?.data?.error;
-
       if (message === 'No remarks found for this leadId') {
         console.info('ℹ️ [API INFO] No remarks found (expected).');
       } else {
         console.error('🔴 [API ERROR] Server responded with:', {
-          status,
+          status: error.response.status,
           data: error.response.data,
           headers: error.response.headers,
         });
       }
-
       if (message === 'Invalid token' || message === 'Account is inactive') {
         console.warn('🚪 [API AUTH] Clearing token due to auth error');
         await secureStorage.removeItem('token');
       }
     } else if (error.request) {
-      console.error('🌐 [API NETWORK ERROR] No response received (possible FormData header/HTTP/port issue).');
+      console.error('🌐 [API NETWORK ERROR] No response received (possible networking / host / timeout issue).');
     } else {
       console.error('⚠️ [API REQUEST ERROR] Setup failed:', error.message);
     }

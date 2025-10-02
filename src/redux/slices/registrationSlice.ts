@@ -1,14 +1,8 @@
-// src/store/slices/registrationSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import apiClient from '../../utils/api';
-import { secureStorage } from '../../utils/secureStorage';
 
 // --- Types ---
-interface Bank {
-  id: string;
-  name: string;
-  code?: string;
-}
+interface Bank { id: string; name: string; code?: string; }
 
 export interface BasicInfo {
   fullName: string;
@@ -45,6 +39,7 @@ export interface BankDetails {
   ifscCode: string;
   accountType: string;
   isGstBillingApplicable: boolean;
+  relationshipWithAccountHolder: string; // <-- now part of state (required)
 }
 
 export interface Documents {
@@ -66,6 +61,7 @@ interface RegistrationState {
   documents: Documents;
   banks: Bank[];
   isLoading: boolean;
+  isSubmitting: boolean;
   error: string | null;
   otpSent: boolean;
   emailVerified: boolean;
@@ -105,18 +101,19 @@ const initialState: RegistrationState = {
     ifscCode: '',
     accountType: '',
     isGstBillingApplicable: false,
+    relationshipWithAccountHolder: '', // <-- default empty
   },
   documents: {},
   banks: [],
   isLoading: false,
+  isSubmitting: false,
   error: null,
   otpSent: false,
   emailVerified: false,
 };
 
-// ---- Thunks that KEEP axios (unchanged) ----
+// ---- Thunks ----
 
-// Fetch banks
 export const fetchBanks = createAsyncThunk<Bank[], void, { rejectValue: string }>(
   'registration/fetchBanks',
   async (_, { rejectWithValue }) => {
@@ -129,7 +126,6 @@ export const fetchBanks = createAsyncThunk<Bank[], void, { rejectValue: string }
   }
 );
 
-// Partner OTP: send
 export const sendPartnerOTP = createAsyncThunk(
   'registration/sendPartnerOTP',
   async (email: string, { rejectWithValue }) => {
@@ -142,15 +138,11 @@ export const sendPartnerOTP = createAsyncThunk(
   }
 );
 
-// Partner OTP: verify
 export const verifyPartnerOTP = createAsyncThunk(
   'registration/verifyPartnerOTP',
   async (data: { email: string; otp: string }, { rejectWithValue }) => {
     try {
-      const response = await apiClient.post('/partner/verify-otp', {
-        email: data.email,
-        otp: data.otp,
-      });
+      const response = await apiClient.post('/partner/verify-otp', data);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'OTP verification failed');
@@ -158,60 +150,52 @@ export const verifyPartnerOTP = createAsyncThunk(
   }
 );
 
-// ---- Create Partner (SWITCHED to native fetch + FormData) ----
-export const submitRegistration = createAsyncThunk(
+// --- Thunk: Create Partner (multipart; dot-notation) ---
+export const submitRegistration = createAsyncThunk<any, void, { rejectValue: string; state: any }>(
   'registration/submit',
-  async (_, { getState, rejectWithValue }) => {
+  async (_: void, { getState, rejectWithValue }) => {
     const log = (m: string, e?: any) => console.log(`[REG SUBMIT] ${m}`, e ?? '');
     try {
       const state = getState() as any;
       const { basicInfo, personalInfo, addressDetails, bankDetails, documents } = state.registration;
 
-      const BASE_URL = (apiClient.defaults.baseURL || '').replace(/\/$/, '');
-      const url = `${BASE_URL}/partner/create`;
-      log('POST', url);
-
       const S = (v: any) => (v === undefined || v === null ? '' : String(v));
-
       const fd = new FormData();
 
-      // ---- BasicInfo (BRACKETS) ----
-      fd.append('basicInfo[fullName]', S(basicInfo.fullName));
-      fd.append('basicInfo[mobile]', S(basicInfo.mobile));
-      fd.append('basicInfo[email]', S(basicInfo.email));
-      fd.append('basicInfo[registeringAs]', S(basicInfo.registeringAs));
-      if (basicInfo.teamStrength) fd.append('basicInfo[teamStrength]', S(basicInfo.teamStrength));
+      // Basic Info
+      fd.append('basicInfo.fullName', S(basicInfo.fullName));
+      fd.append('basicInfo.mobile', S(basicInfo.mobile));
+      fd.append('basicInfo.email', S(basicInfo.email));
+      fd.append('basicInfo.registeringAs', S(basicInfo.registeringAs));
+      if (basicInfo.teamStrength) fd.append('basicInfo.teamStrength', S(basicInfo.teamStrength));
 
-      // ---- PersonalInfo ----
-      fd.append('personalInfo[dateOfBirth]', S(personalInfo.dateOfBirth));
-      fd.append('personalInfo[currentProfession]', S(personalInfo.currentProfession));
-      fd.append('personalInfo[emergencyContactNumber]', S(personalInfo.emergencyContactNumber));
-      fd.append('personalInfo[focusProduct]', S(personalInfo.focusProduct));
-      fd.append('personalInfo[roleSelection]', S(personalInfo.roleSelection));
-      fd.append('personalInfo[experienceInSellingLoans]', S(personalInfo.experienceInSellingLoans));
+      // Personal Info
+      fd.append('personalInfo.dateOfBirth', S(personalInfo.dateOfBirth));
+      fd.append('personalInfo.currentProfession', S(personalInfo.currentProfession));
+      fd.append('personalInfo.emergencyContactNumber', S(personalInfo.emergencyContactNumber));
+      fd.append('personalInfo.focusProduct', S(personalInfo.focusProduct));
+      fd.append('personalInfo.roleSelection', S(personalInfo.roleSelection));
+      fd.append('personalInfo.experienceInSellingLoans', S(personalInfo.experienceInSellingLoans));
 
-      // ---- AddressDetails ----
-      fd.append('addressDetails[addressLine1]', S(addressDetails.addressLine1));
-      fd.append('addressDetails[addressLine2]', S(addressDetails.addressLine2));
-      fd.append('addressDetails[landmark]', S(addressDetails.landmark));
-      fd.append('addressDetails[city]', S(addressDetails.city));
-      fd.append('addressDetails[pincode]', S(addressDetails.pincode));
-      fd.append('addressDetails[addressType]', S(addressDetails.addressType));
+      // Address Details
+      fd.append('addressDetails.addressLine1', S(addressDetails.addressLine1));
+      fd.append('addressDetails.addressLine2', S(addressDetails.addressLine2));
+      fd.append('addressDetails.landmark', S(addressDetails.landmark));
+      fd.append('addressDetails.city', S(addressDetails.city));
+      fd.append('addressDetails.pincode', S(addressDetails.pincode));
+      fd.append('addressDetails.addressType', S(addressDetails.addressType));
 
-      // ---- BankDetails ----
-      fd.append('bankDetails[accountHolderName]', S(bankDetails.accountHolderName));
-      fd.append('bankDetails[accountType]', S(bankDetails.accountType));
-      fd.append('bankDetails[bankName]', S(bankDetails.bankName));
-      fd.append('bankDetails[accountNumber]', S(bankDetails.accountNumber));
-      fd.append('bankDetails[ifscCode]', S(bankDetails.ifscCode));
-      fd.append('bankDetails[branchName]', S(bankDetails.branchName));
-      fd.append('bankDetails[isGstBillingApplicable]', String(!!bankDetails.isGstBillingApplicable));
-      // include if present to fully mirror web
-      if ((bankDetails as any)?.relationshipWithAccountHolder) {
-        fd.append('bankDetails[relationshipWithAccountHolder]', S((bankDetails as any).relationshipWithAccountHolder));
-      }
+      // Bank Details (ALWAYS send both relationship + GST)
+      fd.append('bankDetails.accountHolderName', S(bankDetails.accountHolderName));
+      fd.append('bankDetails.accountType', S(bankDetails.accountType));
+      fd.append('bankDetails.bankName', S(bankDetails.bankName));
+      fd.append('bankDetails.accountNumber', S(bankDetails.accountNumber));
+      fd.append('bankDetails.ifscCode', S(bankDetails.ifscCode));
+      fd.append('bankDetails.branchName', S(bankDetails.branchName));
+      fd.append('bankDetails.relationshipWithAccountHolder', S(bankDetails.relationshipWithAccountHolder)); // <-- always
+      fd.append('bankDetails.isGstBillingApplicable', bankDetails.isGstBillingApplicable ? 'true' : 'false'); // <-- always
 
-      // ---- Files (exactly once) ----
+      // Files
       const guessMime = (name: string) => {
         const n = (name || '').toLowerCase();
         if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
@@ -219,14 +203,21 @@ export const submitRegistration = createAsyncThunk(
         if (n.endsWith('.pdf')) return 'application/pdf';
         return 'application/octet-stream';
       };
+      const normalizeMime = (t?: string, name?: string) =>
+        (!t || !t.includes('/')) ? guessMime(name || '') : t;
+
       const appendFile = (field: string, file: any, fallbackName: string) => {
-        if (!file) return;
+        if (!file) { log(`skip ${field}: no file`); return; }
         const uri = file?.uri ?? file?.asset?.uri ?? file?.path ?? (typeof file === 'string' ? file : null);
-        if (!uri) return;
         const name = file?.name ?? file?.fileName ?? fallbackName;
-        const type = file?.type ?? file?.mimeType ?? guessMime(name);
-        fd.append(field, { uri, name, type } as any);
-        log('file', { field, name, uri, type });
+        const type = normalizeMime(file?.type ?? file?.mimeType, name);
+        if (!uri) { log(`skip ${field}: missing uri`, { file }); return; }
+        if (!/^content:\/\//i.test(uri) && !/^file:\/\//i.test(uri)) {
+          log(`skip ${field}: uri not local (file:// or content:// required)`, { uri }); return;
+        }
+        // @ts-ignore RN FormData file shape
+        fd.append(field, { uri, name, type });
+        log('file', { field, name, type, uri });
       };
 
       appendFile('profilePhoto', documents.profilePhoto, 'profile.jpg');
@@ -235,62 +226,58 @@ export const submitRegistration = createAsyncThunk(
       appendFile('aadharBack', documents.aadharBack, 'aadhar-back.jpg');
       appendFile('cancelledCheque', documents.cancelledCheque, 'cheque.jpg');
       appendFile('gstCertificate', documents.gstCertificate, 'gst.pdf');
-      // IMPORTANT: backend key is "aditional" (matches web)
       appendFile('aditional', documents.additional, 'file.bin');
 
-      // Debug keys
-      // @ts-ignore
-      const parts = (fd as any)?._parts;
-      if (Array.isArray(parts)) log('FormData keys', parts.map((p: any) => p?.[0]));
+      // Debug dump
+      try {
+        // @ts-ignore RN FormData has a private _parts array
+        const parts = (fd as any)?._parts ?? [];
+        console.log('🧾 FormData Preview (about to send):');
+        for (const [key, value] of parts) {
+          if (value && typeof value === 'object' && 'uri' in value) {
+            console.log(`  • FILE  ${key} -> name=${value.name}, type=${value.type}, uri=${value.uri}`);
+          } else {
+            console.log(`  • FIELD ${key} = ${String(value)}`);
+          }
+        }
+        console.log('🧾 ---- END FormData ----');
+      } catch (e) {
+        console.warn('⚠️ Could not dump FormData preview', e);
+      }
 
-      const token = await secureStorage.getItem('token');
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          // DO NOT set Content-Type
+      // POST
+      const res = await apiClient.post('/partner/create', fd, {
+        timeout: 120000,
+        transformRequest: (d) => d,
+        headers: { 'Content-Type': 'multipart/form-data' },
+        ...( { keepMultipartContentType: true } as any ),
+        maxBodyLength: Infinity as any,
+        maxContentLength: Infinity as any,
+        onUploadProgress: (p) => {
+          const pct = p.total ? Math.round((p.loaded / p.total) * 100) : null;
+          console.log('[UPLOAD]', p.loaded, p.total, pct ?? '?%');
         },
-        body: fd,
       });
 
       log('status', res.status);
-      let json: any = {};
-      try { json = await res.json(); } catch { json = { message: await res.text().catch(() => '') }; }
-
-      if (!res.ok) {
-        const msg = json?.message || json?.error || `Server error (${res.status})`;
-        log('server-error', msg);
-        if (msg === 'Partner already exists') {
-          throw new Error('This email or phone number is already registered. Try logging in instead or use a different email to create a new account.');
-        }
-        throw new Error(msg);
-      }
-
-      log('done');
-      return json;
+      return res.data;
     } catch (e: any) {
       const msg =
-        e?.name === 'AbortError'
-          ? 'Request timeout. Please check your internet connection and try again.'
-          : (e?.message || 'An unexpected error occurred. Please try again.');
+        e?.response?.data?.message ||
+        e?.message ||
+        'An unexpected error occurred. Please try again.';
       console.log('[REG SUBMIT] Failed', { name: e?.name, message: e?.message });
       return rejectWithValue(msg);
     }
   }
 );
 
-
-
 // ---- Slice ----
 const registrationSlice = createSlice({
   name: 'registration',
   initialState,
   reducers: {
-    setCurrentStep: (state, action: PayloadAction<number>) => {
-      state.currentStep = action.payload;
-    },
+    setCurrentStep: (state, action: PayloadAction<number>) => { state.currentStep = action.payload; },
     updateBasicInfo: (state, action: PayloadAction<Partial<BasicInfo>>) => {
       state.basicInfo = { ...state.basicInfo, ...action.payload };
     },
@@ -306,9 +293,7 @@ const registrationSlice = createSlice({
     updateDocuments: (state, action: PayloadAction<Partial<Documents>>) => {
       state.documents = { ...state.documents, ...action.payload };
     },
-    clearError: (state) => {
-      state.error = null;
-    },
+    clearError: (state) => { state.error = null; },
     resetRegistration: () => initialState,
     setEmailVerified: (state, action: PayloadAction<boolean>) => {
       state.emailVerified = action.payload;
@@ -317,59 +302,20 @@ const registrationSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Send Partner OTP
-      .addCase(sendPartnerOTP.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(sendPartnerOTP.fulfilled, (state) => {
-        state.isLoading = false;
-        state.otpSent = true;
-      })
-      .addCase(sendPartnerOTP.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-      })
-      // Verify Partner OTP
-      .addCase(verifyPartnerOTP.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
+      .addCase(sendPartnerOTP.pending, (state) => { state.isLoading = true; state.error = null; })
+      .addCase(sendPartnerOTP.fulfilled, (state) => { state.isLoading = false; state.otpSent = true; })
+      .addCase(sendPartnerOTP.rejected, (state, action) => { state.isLoading = false; state.error = action.payload as string; })
+      .addCase(verifyPartnerOTP.pending, (state) => { state.isLoading = true; state.error = null; })
       .addCase(verifyPartnerOTP.fulfilled, (state) => {
-        state.isLoading = false;
-        state.emailVerified = true;
-        state.basicInfo.isEmailVerified = true;
+        state.isLoading = false; state.emailVerified = true; state.basicInfo.isEmailVerified = true;
       })
-      .addCase(verifyPartnerOTP.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-      })
-      // Submit Registration (native fetch)
-      .addCase(submitRegistration.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(submitRegistration.fulfilled, (state) => {
-        state.isLoading = false;
-        return initialState;
-      })
-      .addCase(submitRegistration.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-      })
-      // Fetch Banks
-      .addCase(fetchBanks.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(fetchBanks.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.banks = action.payload;
-      })
-      .addCase(fetchBanks.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-      });
+      .addCase(verifyPartnerOTP.rejected, (state, action) => { state.isLoading = false; state.error = action.payload as string; })
+      .addCase(fetchBanks.pending, (state) => { state.isLoading = true; state.error = null; })
+      .addCase(fetchBanks.fulfilled, (state, action) => { state.isLoading = false; state.banks = action.payload; })
+      .addCase(fetchBanks.rejected, (state, action) => { state.isLoading = false; state.error = action.payload as string; })
+      .addCase(submitRegistration.pending, (state) => { state.isSubmitting = true; state.error = null; })
+      .addCase(submitRegistration.fulfilled, () => initialState)
+      .addCase(submitRegistration.rejected, (state, action) => { state.isSubmitting = false; state.error = action.payload as string; });
   },
 });
 

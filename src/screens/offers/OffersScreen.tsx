@@ -1,7 +1,7 @@
+// screens/offers/OffersScreen.tsx
 "use client"
 
-import type React from "react"
-import { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState, useCallback } from "react"
 import {
   View,
   Text,
@@ -11,27 +11,18 @@ import {
   RefreshControl,
   TextInput,
   Image,
-  Dimensions,
+  Pressable,
+  Platform,
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigation } from "@react-navigation/native"
 import type { RootState } from "../../redux/store"
 import { fetchAllOffers, type BankOffer } from "../../redux/slices/offersSlice"
-import {
-  Search,
-  Gift,
-  Star,
-  Clock,
-  CircleCheck as CheckCircle,
-  TriangleAlert as AlertTriangle,
-  Copy,
-  Eye,
-} from "lucide-react-native"
+import { Search, Gift, Star, Clock, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Copy, Eye, Percent, DollarSign } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 import * as Clipboard from "expo-clipboard"
 import { Snackbar } from "react-native-paper"
-
-const { width } = Dimensions.get("window")
 
 const OffersScreen: React.FC = () => {
   const dispatch = useDispatch()
@@ -39,7 +30,6 @@ const OffersScreen: React.FC = () => {
   const { offers, loading, error } = useSelector((state: RootState) => state.offers)
 
   const [searchQuery, setSearchQuery] = useState("")
-  const [filteredOffers, setFilteredOffers] = useState<BankOffer[]>([])
   const [snackbarVisible, setSnackbarVisible] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState("")
 
@@ -47,36 +37,59 @@ const OffersScreen: React.FC = () => {
     dispatch(fetchAllOffers() as any)
   }, [dispatch])
 
-  useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredOffers(offers)
-    } else {
-      const filtered = offers.filter(
-        (offer) =>
-          offer.bankName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          offer.offerHeadline.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          offer.loanType.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-      setFilteredOffers(filtered)
-    }
+  const filteredOffers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return offers
+    return offers.filter(
+      (offer) =>
+        offer.bankName?.toLowerCase().includes(q) ||
+        offer.offerHeadline?.toLowerCase().includes(q) ||
+        offer.loanType?.toLowerCase().includes(q),
+    )
   }, [offers, searchQuery])
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     dispatch(fetchAllOffers() as any)
+  }, [dispatch])
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return "N/A"
+    // 28 Sep 2025
+    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+  }
+
+  const isOfferExpired = (validityDate: string) => new Date(validityDate).getTime() < Date.now()
+
+  const getDaysUntilExpiry = (validityDate: string) => {
+    const today = new Date()
+    const expiry = new Date(validityDate)
+    const diff = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    return diff
+  }
+
+  const getExpiryStatus = (validityDate: string) => {
+    const expired = isOfferExpired(validityDate)
+    const daysLeft = getDaysUntilExpiry(validityDate)
+    if (expired) return { text: "Expired", color: "#EF4444", icon: AlertTriangle }
+    if (daysLeft <= 7) return { text: `${Math.max(daysLeft, 0)} days left`, color: "#F59E0B", icon: Clock }
+    return { text: `${daysLeft} days left`, color: "#10B981", icon: CheckCircle }
   }
 
   const handleCopyOffer = async (offer: BankOffer) => {
-    const offerDetails = `
-🏦 Bank: ${offer.bankName}
-📋 Offer: ${offer.offerHeadline}
-💰 Interest Rate: ${offer.interestRate}%
-💳 Processing Fee: ${offer.processingFee}${offer.processingFeeType === "percentage" ? "%" : ""}
-📅 Valid Until: ${formatDate(offer.offerValidity)}
-🏷️ Loan Type: ${offer.loanType.replace(/_/g, " ")}
-${offer.keyFeatures.length > 0 ? `✨ Features: ${offer.keyFeatures.join(", ")}` : ""}
-    `.trim()
+    const msg = [
+      `🏦 Bank: ${offer.bankName}`,
+      `📋 Offer: ${offer.offerHeadline}`,
+      `💰 Interest Rate: ${offer.interestRate}%`,
+      `💳 Processing Fee: ${offer.processingFee}${offer.processingFeeType === "percentage" ? "%" : ""}`,
+      `📅 Valid Until: ${formatDate(offer.offerValidity)}`,
+      `🏷️ Loan Type: ${offer.loanType?.replace(/_/g, " ")}`,
+      offer.keyFeatures?.length ? `✨ Features: ${offer.keyFeatures.join(", ")}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n")
 
-    await Clipboard.setStringAsync(offerDetails)
+    await Clipboard.setStringAsync(msg)
     setSnackbarMessage("Offer details copied to clipboard!")
     setSnackbarVisible(true)
   }
@@ -85,467 +98,369 @@ ${offer.keyFeatures.length > 0 ? `✨ Features: ${offer.keyFeatures.join(", ")}`
     navigation.navigate("OfferDetails", { offer })
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-  }
-
-  const isOfferExpired = (validityDate: string) => {
-    return new Date(validityDate) < new Date()
-  }
-
-  const getDaysUntilExpiry = (validityDate: string) => {
-    const today = new Date()
-    const expiry = new Date(validityDate)
-    const diffTime = expiry.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
-
-  const getExpiryStatus = (validityDate: string) => {
-    const expired = isOfferExpired(validityDate)
-    const daysLeft = getDaysUntilExpiry(validityDate)
-
-    if (expired) {
-      return { text: "Expired", color: "#EF4444", icon: AlertTriangle }
-    } else if (daysLeft <= 7) {
-      return { text: `${daysLeft} days left`, color: "#F59E0B", icon: Clock }
-    } else {
-      return { text: `${daysLeft} days left`, color: "#10B981", icon: CheckCircle }
-    }
-  }
-
   const renderOfferItem = ({ item }: { item: BankOffer }) => {
     const expiryStatus = getExpiryStatus(item.offerValidity)
     const ExpiryIcon = expiryStatus.icon
     const expired = isOfferExpired(item.offerValidity)
 
     return (
-      <TouchableOpacity
-        style={[styles.offerCard, expired && styles.expiredCard]}
+      <Pressable
+        accessibilityRole="button"
         onPress={() => handleViewOffer(item)}
-        activeOpacity={0.95}
+        style={({ pressed }) => [styles.card, expired && styles.cardExpired, pressed && styles.cardPressed]}
       >
-        <View style={styles.cardContainer}>
-          {/* Large banner image section */}
-          <View style={styles.bannerSection}>
-            <Image source={{ uri: item.bankImage }} style={styles.bannerImage} resizeMode="cover" />
-            <LinearGradient
-              colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.7)"]}
-              style={styles.bannerOverlay}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-            >
-              {/* Featured badge */}
-              {item.isFeatured && !expired && (
-                <View style={styles.featuredBadge}>
-                  <Star size={12} color="#FFD700" fill="#FFD700" strokeWidth={0} />
-                  <Text style={styles.featuredText}>FEATURED</Text>
-                </View>
-              )}
-
-              {/* Loan type badge */}
-              <View style={styles.loanTypeBadge}>
-                <Text style={styles.loanTypeText}>{item.loanType.replace(/_/g, " ")}</Text>
+        {/* HERO IMAGE */}
+        <View style={styles.heroWrap}>
+          {/* Fallback color block if image missing */}
+          {item.bankImage ? (
+            <Image source={{ uri: item.bankImage }} style={styles.heroImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.heroImage, { backgroundColor: "#EEF2FF" }]} />
+          )}
+          {/* overlay gradient */}
+          <LinearGradient
+            colors={["rgba(0,0,0,0.0)", "rgba(0,0,0,0.35)"]}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* top badges */}
+          <View style={styles.heroTopRow}>
+            {item.isFeatured && !expired && (
+              <View style={styles.featuredChip}>
+                <Star size={12} color="#111827" />
+                <Text style={styles.featuredChipText}>Featured</Text>
               </View>
-
-              {/* Large interest rate display */}
-              <View style={styles.rateDisplay}>
-                <Text style={styles.rateNumber}>{item.interestRate}%</Text>
-                <Text style={styles.rateLabel}>onwards</Text>
-              </View>
-            </LinearGradient>
+            )}
+            <View style={styles.expiryChip}>
+              <ExpiryIcon size={12} color={expiryStatus.color} />
+              <Text style={[styles.expiryChipText, { color: "#FFFFFF" }]}>{expiryStatus.text}</Text>
+            </View>
           </View>
 
-          {/* Details section */}
-          <View style={styles.detailsSection}>
-            {/* Countdown timer */}
-            <View style={styles.timerSection}>
-              <Clock size={16} color="#00B9AE" strokeWidth={2} />
-              <Text style={styles.timerText}>{expiryStatus.text}</Text>
-              <Text style={styles.expiryDate}>Expires {formatDate(item.offerValidity)}</Text>
-            </View>
-
-            {/* Bank name and offer headline */}
-            <View style={styles.bankSection}>
-              <View style={styles.bankNameContainer}>
-                <Text style={styles.bankName}>{item.bankName}</Text>
-                <Star size={16} color="#FFD700" fill="#FFD700" strokeWidth={0} />
-              </View>
-              <Text style={styles.offerHeadline} numberOfLines={1}>
-                {item.offerHeadline}
-              </Text>
-            </View>
-
-            {/* Key metrics */}
-            <View style={styles.metricsRow}>
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>INTEREST RATE</Text>
-                <Text style={styles.metricValue}>{item.interestRate}%</Text>
-              </View>
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>PROCESSING FEE</Text>
-                <Text style={styles.metricValue}>
-                  {item.processingFee}
-                  {item.processingFeeType === "percentage" ? "%" : ""}
-                </Text>
-              </View>
-            </View>
-
-            {/* Action buttons */}
-            <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.copyBtn} onPress={() => handleCopyOffer(item)}>
-                <Copy size={16} color="#00B9AE" strokeWidth={2} />
-                <Text style={styles.copyText}>Copy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.viewBtn} onPress={() => handleViewOffer(item)}>
-                <Eye size={16} color="#FFFFFF" strokeWidth={2} />
-                <Text style={styles.viewText}>View Details</Text>
-              </TouchableOpacity>
-            </View>
+          {/* bottom bank name + headline */}
+          <View style={styles.heroBottom}>
+            <Text style={styles.bankName}>{item.bankName}</Text>
+            <Text style={styles.headline} numberOfLines={2}>
+              {item.offerHeadline}
+            </Text>
           </View>
         </View>
-      </TouchableOpacity>
+
+        {/* METRICS ROW */}
+        <View style={styles.metricsRow}>
+          <View style={styles.metricCard}>
+            <View style={styles.metricIconWrap}>
+              <Percent size={16} color="#4F46E5" />
+            </View>
+            <Text style={styles.metricLabel}>Interest Rate</Text>
+            <Text style={styles.metricValue}>{item.interestRate}%</Text>
+            <Text style={styles.metricSub}>onwards</Text>
+          </View>
+
+          <View style={styles.metricCard}>
+            <View style={[styles.metricIconWrap, { backgroundColor: "rgba(16,185,129,0.12)" }]}>
+              <DollarSign size={16} color="#10B981" />
+            </View>
+            <Text style={styles.metricLabel}>Processing Fee</Text>
+            <Text style={styles.metricValue}>
+              {item.processingFee}
+              {item.processingFeeType === "percentage" ? "%" : ""}
+            </Text>
+            <Text style={styles.metricSub}>only</Text>
+          </View>
+
+          <View style={styles.metricCard}>
+            <View style={[styles.metricIconWrap, { backgroundColor: "rgba(245,158,11,0.12)" }]}>
+              <Clock size={16} color="#F59E0B" />
+            </View>
+            <Text style={styles.metricLabel}>Valid Until</Text>
+            <Text style={styles.metricValue}>{formatDate(item.offerValidity)}</Text>
+            <Text style={styles.metricSub}>Hurry</Text>
+          </View>
+        </View>
+
+        {/* TAGS / LOAN TYPE */}
+        {item.loanType ? (
+          <View style={styles.tagsRow}>
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>{item.loanType.replace(/_/g, " ")}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* FEATURES */}
+        {item.keyFeatures?.length ? (
+          <View style={styles.featuresRow}>
+            <Text style={styles.featuresTitle}>Key Features</Text>
+            <Text style={styles.featuresText} numberOfLines={2}>
+              {item.keyFeatures.slice(0, 3).join(" • ")}
+              {item.keyFeatures.length > 3 ? " • ..." : ""}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* ACTIONS */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.copyBtn} onPress={() => handleCopyOffer(item)}>
+            <Copy size={14} color="#4F46E5" />
+            <Text style={styles.copyText}>Copy</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => handleViewOffer(item)}>
+            <Eye size={14} color="#FFFFFF" />
+            <Text style={styles.primaryText}>View Details</Text>
+          </TouchableOpacity>
+        </View>
+      </Pressable>
     )
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Premium Offers</Text>
-          <Text style={styles.headerSubtitle}>
-            {filteredOffers.length} exclusive offer{filteredOffers.length !== 1 ? "s" : ""} available
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      {/* HEADER */}
+      <LinearGradient colors={["#4F46E5", "#7C3AED"]} style={styles.header}>
+        <View accessible accessibilityRole="header">
+          <Text style={styles.title}>Premium Bank Offers</Text>
+          <Text style={styles.subtitle}>
+            {filteredOffers.length} exclusive offer{filteredOffers.length !== 1 ? "s" : ""}
           </Text>
         </View>
 
-        {/* Search bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Search size={20} color="#00B9AE" strokeWidth={2} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by bank, offer, or loan type..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor="#9CA3AF"
-            />
-          </View>
+        {/* Search */}
+        <View style={styles.searchWrap}>
+          <Search size={18} color="#4F46E5" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by bank, offer, or loan type..."
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* Offers list */}
+      {/* LIST */}
       <FlatList
         data={filteredOffers}
-        renderItem={renderOfferItem}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContainer}
+        renderItem={renderOfferItem}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={handleRefresh} colors={["#00B9AE"]} tintColor="#00B9AE" />
-        }
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={handleRefresh} colors={["#4F46E5"]} tintColor="#4F46E5" />}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconContainer}>
-              <Gift size={80} color="#E5E7EB" strokeWidth={1.5} />
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Gift size={72} color="#E5E7EB" />
             </View>
             <Text style={styles.emptyTitle}>No offers available</Text>
-            <Text style={styles.emptySubtitle}>
-              {searchQuery ? "Try adjusting your search criteria" : "Check back later for new exclusive offers"}
+            <Text style={styles.emptySub}>
+              {searchQuery ? "Try adjusting your search" : "Check back later for new exclusive offers"}
             </Text>
           </View>
         }
       />
 
-      {/* Success/Error Snackbar */}
+      {/* Snackbar */}
       <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
+        visible={snackbarVisible || !!error}
+        onDismiss={() => {
+          setSnackbarVisible(false)
+        }}
         duration={3000}
         style={styles.snackbar}
       >
-        {snackbarMessage}
+        {snackbarMessage || error || "Something went wrong"}
       </Snackbar>
-    </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
+  safe: { flex: 1, backgroundColor: "#F8FAFC" },
+
   header: {
-    paddingTop: 20,
-    paddingBottom: 10,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    paddingTop: 8,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
   },
-  headerContent: {
-    paddingHorizontal: 20,
-    marginBottom: 10,
-  },
-  headerTitle: {
+  title: {
     fontSize: 24,
-    fontWeight: "800",
-    color: "#0F172A",
+    fontWeight: "900",
+    color: "#FFFFFF",
     marginBottom: 4,
     letterSpacing: -0.3,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#64748B",
-    fontWeight: "500",
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  searchBar: {
+  subtitle: { fontSize: 13, color: "rgba(255,255,255,0.92)", fontWeight: "600" },
+
+  searchWrap: {
+    marginTop: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 12 : 10,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 2,
-    borderColor: "rgba(0, 185, 174, 0.1)",
-    shadowColor: "#00B9AE",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(79,70,229,0.12)",
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
+    fontSize: 15,
     color: "#0F172A",
-    fontWeight: "500",
+    fontWeight: "600",
   },
-  listContainer: {
-    padding: 20,
-    paddingBottom: 120,
-  },
-  offerCard: {
-    marginBottom: 20,
-    borderRadius: 20,
+
+  listContent: { padding: 16, paddingBottom: 40 },
+
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
     overflow: "hidden",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#EEF2F7",
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
-  expiredCard: {
-    opacity: 0.7,
-  },
-  cardContainer: {
-    flexDirection: "column",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  bannerSection: {
-    position: "relative",
-    height: 200,
-  },
-  bannerImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 20,
-  },
-  bannerOverlay: {
+  cardExpired: { opacity: 0.75 },
+  cardPressed: { transform: [{ scale: 0.997 }] },
+
+  heroWrap: { width: "100%", height: 160, backgroundColor: "#EEF2FF" },
+  heroImage: { width: "100%", height: "100%" },
+
+  heroTopRow: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 20,
-    justifyContent: "flex-end",
-    padding: 20,
-  },
-  featuredBadge: {
+    top: 10,
+    left: 10,
+    right: 10,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FFD700",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginBottom: 8,
   },
-  featuredText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#92400E",
-    letterSpacing: 0.5,
-  },
-  loanTypeBadge: {
-    backgroundColor: "rgba(0, 185, 174, 0.1)",
+  featuredChip: {
+    backgroundColor: "#FDE68A",
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  loanTypeText: {
-    fontSize: 12,
-    color: "#00B9AE",
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  rateDisplay: {
+    paddingVertical: 6,
+    borderRadius: 16,
     flexDirection: "row",
+    gap: 6,
     alignItems: "center",
-    gap: 8,
   },
-  rateNumber: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  rateLabel: {
-    fontSize: 12,
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  detailsSection: {
-    padding: 20,
-    backgroundColor: "#FFFFFF",
-  },
-  timerSection: {
+  featuredChipText: { fontSize: 12, fontWeight: "800", color: "#111827" },
+  expiryChip: {
+    backgroundColor: "rgba(0,0,0,0.35)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
     flexDirection: "row",
+    gap: 6,
     alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
   },
-  timerText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#00B9AE",
+  expiryChipText: { fontSize: 12, fontWeight: "800" },
+
+  heroBottom: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 12,
   },
-  expiryDate: {
-    fontSize: 12,
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  bankSection: {
-    flexDirection: "column",
-    marginBottom: 16,
-  },
-  bankNameContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  bankName: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#0F172A",
-    letterSpacing: -0.3,
-  },
-  offerHeadline: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0F172A",
-    lineHeight: 24,
-    letterSpacing: -0.3,
-  },
+  bankName: { color: "#FFFFFF", fontSize: 18, fontWeight: "900", letterSpacing: -0.2 },
+  headline: { color: "rgba(255,255,255,0.92)", fontSize: 13, fontWeight: "700", marginTop: 2 },
+
   metricsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: "#FFFFFF",
   },
-  metricItem: {
+  metricCard: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingVertical: 12,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(15,23,42,0.06)",
   },
-  metricLabel: {
-    fontSize: 12,
-    color: "#64748B",
-    fontWeight: "600",
-    marginBottom: 4,
+  metricIconWrap: {
+    width: 30,
+    height: 30,
+    backgroundColor: "rgba(79,70,229,0.12)",
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
   },
-  metricValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#0F172A",
+  metricLabel: { fontSize: 10, color: "#64748B", fontWeight: "700" },
+  metricValue: { fontSize: 16, fontWeight: "900", color: "#0F172A", marginTop: 2 },
+  metricSub: { fontSize: 10, color: "#94A3B8", fontWeight: "600", marginTop: 2 },
+
+  tagsRow: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 6 },
+  tag: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(79,70,229,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(79,70,229,0.2)",
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
-  actionButtons: {
+  tagText: { color: "#4F46E5", fontWeight: "800", fontSize: 11, letterSpacing: 0.3 },
+
+  featuresRow: { paddingHorizontal: 12, paddingBottom: 10 },
+  featuresTitle: { fontSize: 12, fontWeight: "800", color: "#4F46E5", marginBottom: 2 },
+  featuresText: { fontSize: 13, color: "#475569", fontWeight: "600", lineHeight: 18 },
+
+  actionsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingBottom: 14,
   },
   copyBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(0, 185, 174, 0.1)",
-    borderRadius: 12,
-    padding: 12,
     flex: 1,
-    marginRight: 8,
-  },
-  viewBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#00B9AE",
+    backgroundColor: "rgba(79,70,229,0.08)",
     borderRadius: 12,
-    padding: 12,
-    flex: 1,
-  },
-  copyText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#00B9AE",
-  },
-  viewText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  emptyContainer: {
+    paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 80,
+    borderWidth: 1,
+    borderColor: "rgba(79,70,229,0.2)",
+    flexDirection: "row",
+    gap: 6,
   },
-  emptyIconContainer: {
-    width: 120,
-    height: 120,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 60,
-    justifyContent: "center",
+  copyText: { color: "#4F46E5", fontWeight: "800", fontSize: 13 },
+  primaryBtn: {
+    flex: 2,
+    backgroundColor: "#4F46E5",
+    borderRadius: 12,
+    paddingVertical: 12,
     alignItems: "center",
-    marginBottom: 24,
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#374151",
-    marginBottom: 12,
+  primaryText: { color: "#FFFFFF", fontWeight: "900", fontSize: 13 },
+
+  empty: { alignItems: "center", paddingVertical: 64, paddingHorizontal: 16 },
+  emptyIcon: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
-  emptySubtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    textAlign: "center",
-    paddingHorizontal: 40,
-    lineHeight: 24,
-  },
-  snackbar: {
-    backgroundColor: "#00B9AE",
-  },
+  emptyTitle: { fontSize: 18, fontWeight: "900", color: "#111827" },
+  emptySub: { fontSize: 13, color: "#6B7280", textAlign: "center", marginTop: 6 },
+
+  snackbar: { backgroundColor: "#4F46E5" },
 })
 
 export default OffersScreen

@@ -1,565 +1,466 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../redux/store';
-import { fetchProductInfo, clearError } from '../../redux/slices/resourceAndSupportSlice';
-import { BookOpen, CreditCard, FileText, Users, CircleCheck as CheckCircle, DollarSign, Calendar, Percent } from 'lucide-react-native';
-import { Snackbar } from 'react-native-paper';
+"use client"
+
+import React, { useEffect, useMemo, useState } from "react"
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+  Platform,
+} from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
+import { useDispatch, useSelector } from "react-redux"
+import { LinearGradient } from "expo-linear-gradient"
+import { Snackbar } from "react-native-paper"
+import { RootState } from "../../redux/store"
+import { fetchProductInfo, clearError } from "../../redux/slices/resourceAndSupportSlice"
+import {
+  BookOpen,
+  FileText,
+  CreditCard,
+  Percent,
+  DollarSign,
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react-native"
+
+type TabKey = "guides" | "eligibility" | "documents"
 
 const ProductInfoScreen: React.FC = () => {
-  const dispatch = useDispatch();
-  const { productInfo, productInfoLoading, error } = useSelector(
-    (state: RootState) => state.resourceAndSupport
-  );
+  const dispatch = useDispatch()
+  const { productInfo, productInfoLoading, error } = useSelector((s: RootState) => s.resourceAndSupport)
 
-  const [activeTab, setActiveTab] = useState<'guides' | 'eligibility' | 'documents'>('guides');
+  const [activeTab, setActiveTab] = useState<TabKey>("guides")
 
   useEffect(() => {
-    dispatch(fetchProductInfo() as any);
-  }, [dispatch]);
+    dispatch(fetchProductInfo() as any)
+  }, [dispatch])
 
-  const handleRefresh = () => {
-    dispatch(fetchProductInfo() as any);
-  };
+  const handleRefresh = () => dispatch(fetchProductInfo() as any)
+  const handleDismissError = () => dispatch(clearError())
 
-  const handleDismissError = () => {
-    dispatch(clearError());
-  };
+  // ---------- Styling helpers for loan types ----------
+  const typeColor: Record<string, string> = {
+    "PL - Term Loan": "#3B82F6",
+    "PL - Overdraft": "#6366F1",
+    "BL - Term Loan": "#10B981",
+    "BL - Overdraft": "#F59E0B",
+    "SEP - Term Loan": "#8B5CF6",
+    "SEP - Overdraft": "#EF4444",
+  }
+  const getLoanTypeColor = (t: string) => typeColor[t] || "#6B7280"
+  const getTypeBg = (t: string) => `${getLoanTypeColor(t)}15`
 
-  const getLoanTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      'PL - Term Loan': '#3B82F6',
-      'PL - Overdraft': '#6366F1',
-      'BL - Term Loan': '#10B981',
-      'BL - Overdraft': '#F59E0B',
-      'SEP - Term Loan': '#8B5CF6',
-      'SEP - Overdraft': '#EF4444',
-    };
-    return colors[type] || '#6B7280';
-  };
+  // ---------- Derived, null-safe pieces ----------
+  const guides = useMemo(() => productInfo?.guides ?? [], [productInfo])
+  const eligCriteria = useMemo(() => productInfo?.policies?.eligibilityCriteria ?? {}, [productInfo])
+  const eligCalc = useMemo(() => productInfo?.policies?.eligibilityCalculation ?? {}, [productInfo])
+  const documents = useMemo(() => productInfo?.documents ?? {}, [productInfo])
 
-  const getLoanTypeBackground = (type: string) => {
-    const color = getLoanTypeColor(type);
-    return `${color}15`;
-  };
+  const isEmpty =
+    !productInfo ||
+    (guides.length === 0 && Object.keys(eligCriteria).length === 0 && Object.keys(documents).length === 0)
 
-  const renderGuidesTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.tabTitle}>Loan Product Guides</Text>
-      <Text style={styles.tabSubtitle}>Interest rates, fees, and loan terms for all products</Text>
-      
-      <View style={styles.guidesGrid}>
-        {productInfo?.guides.map((guide, index) => (
-          <View key={guide._id || index} style={styles.guideCard}>
-            <View style={[styles.guideHeader, { backgroundColor: getLoanTypeBackground(guide.type) }]}>
-              <CreditCard size={20} color={getLoanTypeColor(guide.type)} strokeWidth={2} />
-              <Text style={[styles.guideType, { color: getLoanTypeColor(guide.type) }]}>
-                {guide.type}
-              </Text>
-            </View>
-            
-            <View style={styles.guideContent}>
-              <View style={styles.guideRow}>
-                <View style={styles.guideItem}>
-                  <Percent size={14} color="#6B7280" strokeWidth={2} />
-                  <Text style={styles.guideLabel}>Interest Rate</Text>
-                  <Text style={styles.guideValue}>{guide.interestRate}</Text>
-                </View>
-                
-                <View style={styles.guideItem}>
-                  <DollarSign size={14} color="#6B7280" strokeWidth={2} />
-                  <Text style={styles.guideLabel}>Processing Fee</Text>
-                  <Text style={styles.guideValue}>{guide.processingFees}</Text>
-                </View>
+  // ---------- Tabs ----------
+  const Tab = ({ id, label, icon: Icon }: { id: TabKey; label: string; icon: any }) => (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => setActiveTab(id)}
+      style={[styles.segBtn, activeTab === id && styles.segBtnActive]}
+    >
+      <Icon size={14} color={activeTab === id ? "#fff" : "#4F46E5"} strokeWidth={2} />
+      <Text style={[styles.segText, activeTab === id && styles.segTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  )
+
+  // ---------- Renderers ----------
+  const renderGuides = () => (
+    <ScrollView
+      style={styles.tabScroll}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={!!productInfoLoading} onRefresh={handleRefresh} colors={["#4F46E5"]} />}
+      contentContainerStyle={{ paddingBottom: 32 }}
+    >
+      <Text style={styles.title}>Loan Product Guides</Text>
+      <Text style={styles.subtitle}>Interest rates, fees, and key terms for each product</Text>
+
+      {guides.length === 0 ? (
+        <EmptyState label="No guides available right now" />
+      ) : (
+        <View style={styles.grid}>
+          {guides.map((g: any, idx: number) => (
+            <View key={g._id || idx} style={styles.card}>
+              <View style={[styles.cardHeader, { backgroundColor: getTypeBg(g.type) }]}>
+                <CreditCard size={18} color={getLoanTypeColor(g.type)} strokeWidth={2} />
+                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(g.type) }]}>{g.type}</Text>
               </View>
-              
-              <View style={styles.guideRow}>
-                <View style={styles.guideItem}>
-                  <DollarSign size={14} color="#6B7280" strokeWidth={2} />
-                  <Text style={styles.guideLabel}>Loan Amount</Text>
-                  <Text style={styles.guideValue}>{guide.loanAmount}</Text>
-                </View>
-                
-                <View style={styles.guideItem}>
-                  <Calendar size={14} color="#6B7280" strokeWidth={2} />
-                  <Text style={styles.guideLabel}>Tenure</Text>
-                  <Text style={styles.guideValue}>{guide.tenure}</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
 
-  const renderEligibilityTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.tabTitle}>Eligibility Criteria</Text>
-      <Text style={styles.tabSubtitle}>Requirements and calculation methods for loan approval</Text>
-      
-      {/* Eligibility Criteria */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Criteria Requirements</Text>
-        {Object.entries(productInfo?.policies.eligibilityCriteria || {}).map(([type, criteria]) => (
-          <View key={type} style={styles.eligibilityCard}>
-            <View style={[styles.eligibilityHeader, { backgroundColor: getLoanTypeBackground(type) }]}>
-              <CheckCircle size={16} color={getLoanTypeColor(type)} strokeWidth={2} />
-              <Text style={[styles.eligibilityType, { color: getLoanTypeColor(type) }]}>
-                {type}
-              </Text>
-            </View>
-            <View style={styles.criteriaList}>
-              {criteria.map((criterion, index) => (
-                <View key={index} style={styles.criterionItem}>
-                  <View style={styles.criterionDot} />
-                  <Text style={styles.criterionText}>{criterion}</Text>
+              <View style={styles.cardBodyPad}>
+                <View style={styles.metricsRow}>
+                  <MetricBox label="INTEREST RATE" value={g.interestRate || "—"} Icon={Percent} />
+                  <MetricBox label="PROCESSING FEE" value={g.processingFees || "—"} Icon={DollarSign} />
                 </View>
-              ))}
-            </View>
-          </View>
-        ))}
-      </View>
 
-      {/* Calculation Methods */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Calculation Methods</Text>
-        {Object.entries(productInfo?.policies.eligibilityCalculation || {}).map(([type, calculations]) => (
-          <View key={type} style={styles.calculationCard}>
-            <View style={[styles.calculationHeader, { backgroundColor: getLoanTypeBackground(type) }]}>
-              <Text style={[styles.calculationType, { color: getLoanTypeColor(type) }]}>
-                {type}
-              </Text>
-            </View>
-            <View style={styles.calculationList}>
-              {calculations.map((calculation, index) => (
-                <View key={index} style={styles.calculationItem}>
-                  <Text style={styles.calculationText}>{calculation}</Text>
+                <View style={styles.metricsRow}>
+                  <MetricBox label="LOAN AMOUNT" value={g.loanAmount || "—"} Icon={DollarSign} />
+                  <MetricBox label="TENURE" value={g.tenure || "—"} Icon={Calendar} />
                 </View>
-              ))}
-            </View>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
-
-  const renderDocumentsTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.tabTitle}>Required Documents</Text>
-      <Text style={styles.tabSubtitle}>Document requirements for different loan categories</Text>
-      
-      {Object.entries(productInfo?.documents || {}).map(([category, docData]) => (
-        <View key={category} style={styles.documentCategory}>
-          <View style={styles.categoryHeader}>
-            <FileText size={18} color="#4F46E5" strokeWidth={2} />
-            <Text style={styles.categoryTitle}>{category}</Text>
-          </View>
-          
-          {Object.entries(docData.subcategories).map(([subcategory, documents]) => (
-            <View key={subcategory} style={styles.subcategoryCard}>
-              <Text style={styles.subcategoryTitle}>{subcategory}</Text>
-              <View style={styles.documentsList}>
-                {documents.map((document, index) => (
-                  <View key={index} style={styles.documentItem}>
-                    <View style={styles.documentDot} />
-                    <Text style={styles.documentText}>{document}</Text>
-                  </View>
-                ))}
               </View>
             </View>
           ))}
         </View>
-      ))}
+      )}
     </ScrollView>
-  );
+  )
 
+  const renderEligibility = () => (
+    <ScrollView
+      style={styles.tabScroll}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={!!productInfoLoading} onRefresh={handleRefresh} colors={["#4F46E5"]} />}
+      contentContainerStyle={{ paddingBottom: 32 }}
+    >
+      <Text style={styles.title}>Eligibility Criteria</Text>
+      <Text style={styles.subtitle}>Requirements and calculation methods for approval</Text>
+
+      {/* Criteria blocks */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Criteria Requirements</Text>
+        {Object.keys(eligCriteria).length === 0 ? (
+          <EmptyState label="No criteria configured" />
+        ) : (
+          Object.entries(eligCriteria).map(([type, list]: any) => (
+            <View key={type} style={styles.card}>
+              <View style={[styles.cardHeader, { backgroundColor: getTypeBg(type) }]}>
+                <CheckCircle size={16} color={getLoanTypeColor(type)} strokeWidth={2} />
+                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]}>{type}</Text>
+              </View>
+
+              <View style={styles.cardBodyPad}>
+                {list.map((criterion: string, i: number) => (
+                  <View key={i} style={styles.bulletRow}>
+                    <View style={styles.dot} />
+                    <Text style={styles.bulletText}>{criterion}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+
+      {/* Calculation blocks */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Calculation Methods</Text>
+        {Object.keys(eligCalc).length === 0 ? (
+          <EmptyState label="No calculation methods configured" />
+        ) : (
+          Object.entries(eligCalc).map(([type, items]: any) => (
+            <View key={type} style={styles.card}>
+              <View style={[styles.cardHeader, { backgroundColor: getTypeBg(type) }]}>
+                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]}>{type}</Text>
+              </View>
+
+              <View style={styles.cardBodyPad}>
+                {items.map((line: string, i: number) => (
+                  <View key={i} style={styles.calcItem}>
+                    <Text style={styles.calcText}>{line}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+    </ScrollView>
+  )
+
+  const renderDocuments = () => (
+    <ScrollView
+      style={styles.tabScroll}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={!!productInfoLoading} onRefresh={handleRefresh} colors={["#4F46E5"]} />}
+      contentContainerStyle={{ paddingBottom: 32 }}
+    >
+      <Text style={styles.title}>Required Documents</Text>
+      <Text style={styles.subtitle}>Documents by product category and profile</Text>
+
+      {Object.keys(documents).length === 0 ? (
+        <EmptyState label="No documents listed yet" />
+      ) : (
+        Object.entries(documents).map(([category, docData]: any) => (
+          <View key={category} style={styles.docCategory}>
+            <View style={styles.docHeader}>
+              <FileText size={18} color="#4F46E5" strokeWidth={2} />
+              <Text style={styles.docTitle}>{category}</Text>
+            </View>
+
+            {Object.entries(docData?.subcategories ?? {}).map(([sub, docs]: any) => (
+              <View key={sub} style={styles.subCard}>
+                <Text style={styles.subTitle}>{sub}</Text>
+                <View style={{ gap: 8 }}>
+                  {docs.map((d: string, i: number) => (
+                    <View key={i} style={styles.bulletRow}>
+                      <View style={[styles.dot, { backgroundColor: "#10B981" }]} />
+                      <Text style={styles.bulletText}>{d}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        ))
+      )}
+    </ScrollView>
+  )
+
+  // ---------- Loading Gate ----------
   if (productInfoLoading && !productInfo) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading product information...</Text>
-      </View>
-    );
+      <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: "#0B1020" }}>
+        <LinearGradient colors={["#4F46E5", "#7C3AED"]} style={styles.hero}>
+          <View style={styles.heroRow}>
+            <View style={styles.heroIcon}>
+              <BookOpen size={22} color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.heroTitle}>Product Info</Text>
+              <Text style={styles.heroSub}>Loan guides and requirements</Text>
+            </View>
+          </View>
+        </LinearGradient>
+        <View style={[styles.center, { backgroundColor: "#F8FAFC" }]}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+          <Text style={{ marginTop: 12, color: "#6B7280", fontWeight: "600" }}>Loading product information…</Text>
+        </View>
+      </SafeAreaView>
+    )
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <BookOpen size={24} color="#4F46E5" strokeWidth={2} />
-          <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>Product Info</Text>
-            <Text style={styles.headerSubtitle}>Loan guides and requirements</Text>
+    <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
+      <View style={styles.container}>
+        {/* Premium hero header */}
+        <LinearGradient colors={["#4F46E5", "#7C3AED"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+          <View style={styles.heroRow}>
+            <View style={styles.heroIcon}>
+              <BookOpen size={22} color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.heroTitle}>Product Info</Text>
+              <Text style={styles.heroSub}>Loan guides and requirements</Text>
+            </View>
           </View>
+
+          {/* Segmented Tabs */}
+          <View style={styles.segment}>
+            <Tab id="guides" label="Guides" icon={CreditCard} />
+            <Tab id="eligibility" label="Eligibility" icon={CheckCircle} />
+            <Tab id="documents" label="Documents" icon={FileText} />
+          </View>
+        </LinearGradient>
+
+        {/* Content */}
+        <View style={styles.body}>
+          {isEmpty ? (
+            <View style={[styles.center, { padding: 24 }]}>
+              <AlertCircle size={28} color="#9CA3AF" />
+              <Text style={{ marginTop: 10, fontWeight: "800", color: "#374151" }}>No data available</Text>
+              <Text style={{ marginTop: 4, color: "#6B7280", textAlign: "center" }}>
+                Try pulling to refresh or check back later.
+              </Text>
+            </View>
+          ) : activeTab === "guides" ? (
+            renderGuides()
+          ) : activeTab === "eligibility" ? (
+            renderEligibility()
+          ) : (
+            renderDocuments()
+          )}
         </View>
-      </View>
 
-      {/* Tab Navigation */}
-      <View style={styles.tabNavigation}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'guides' && styles.activeTabButton]}
-          onPress={() => setActiveTab('guides')}
+        {/* Error Snackbar */}
+        <Snackbar
+          visible={!!error}
+          onDismiss={handleDismissError}
+          action={{ label: "Dismiss", onPress: handleDismissError }}
         >
-          <Text style={[styles.tabButtonText, activeTab === 'guides' && styles.activeTabButtonText]}>
-            Guides
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'eligibility' && styles.activeTabButton]}
-          onPress={() => setActiveTab('eligibility')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'eligibility' && styles.activeTabButtonText]}>
-            Eligibility
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'documents' && styles.activeTabButton]}
-          onPress={() => setActiveTab('documents')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'documents' && styles.activeTabButtonText]}>
-            Documents
-          </Text>
-        </TouchableOpacity>
+          {error}
+        </Snackbar>
       </View>
+    </SafeAreaView>
+  )
+}
 
-      {/* Tab Content */}
-      <View style={styles.tabContainer}>
-        {activeTab === 'guides' && renderGuidesTab()}
-        {activeTab === 'eligibility' && renderEligibilityTab()}
-        {activeTab === 'documents' && renderDocumentsTab()}
-      </View>
+/* ---------- Small Presentational Bits ---------- */
 
-      {/* Error Snackbar */}
-      <Snackbar
-        visible={!!error}
-        onDismiss={handleDismissError}
-        action={{
-          label: 'Dismiss',
-          onPress: handleDismissError,
-        }}
-      >
-        {error}
-      </Snackbar>
+const MetricBox = ({
+  label,
+  value,
+  Icon,
+}: {
+  label: string
+  value: string
+  Icon: React.ComponentType<any>
+}) => (
+  <View style={styles.metric}>
+    <View style={styles.metricIcon}>
+      <Icon size={16} color="#4F46E5" strokeWidth={2} />
     </View>
-  );
-};
+    <Text style={styles.metricLabel}>{label}</Text>
+    <Text style={styles.metricValue}>{value}</Text>
+  </View>
+)
+
+const EmptyState = ({ label }: { label: string }) => (
+  <View style={styles.emptyWrap}>
+    <AlertCircle size={22} color="#9CA3AF" />
+    <Text style={styles.emptyText}>{label}</Text>
+  </View>
+)
+
+/* ---------- Styles ---------- */
 
 const styles = StyleSheet.create({
-  container: {
+  safe: { flex: 1, backgroundColor: "#0B1020" },
+  container: { flex: 1, backgroundColor: "#F8FAFC" },
+
+  // Hero
+  hero: {
+    paddingHorizontal: 18,
+    paddingTop: Platform.OS === "android" ? 10 : 6,
+    paddingBottom: 14,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+  },
+  heroRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  heroIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTitle: { color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: -0.2 },
+  heroSub: { color: "rgba(255,255,255,0.95)", fontSize: 12.5, fontWeight: "700", marginTop: 2 },
+
+  // Segment
+  segment: {
+    marginTop: 14,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 14,
+    padding: 4,
+    flexDirection: "row",
+    gap: 6,
+  },
+  segBtn: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
   },
-  loadingContainer: {
+  segBtnActive: { backgroundColor: "#4F46E5" },
+  segText: { color: "#4F46E5", fontSize: 12.5, fontWeight: "900" },
+  segTextActive: { color: "#fff" },
+
+  // Body
+  body: { flex: 1 },
+
+  // Shared
+  tabScroll: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
+  title: { fontSize: 18, fontWeight: "900", color: "#0F172A" },
+  subtitle: { fontSize: 13, color: "#64748B", marginTop: 4, marginBottom: 14 },
+
+  grid: { gap: 14 },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#EEF2F7",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  cardHeaderText: { fontSize: 14, fontWeight: "900" },
+  cardBodyPad: { padding: 14 },
+
+  metricsRow: { flexDirection: "row", gap: 12, marginBottom: 10 },
+  metric: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
+  metricIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#EEF2FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
   },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+  metricLabel: { fontSize: 10.5, color: "#64748B", fontWeight: "900" },
+  metricValue: { fontSize: 14, color: "#0F172A", fontWeight: "900", marginTop: 2 },
+
+  section: { marginTop: 10, gap: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: "900", color: "#0F172A" },
+
+  bulletRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#4F46E5", marginTop: 6 },
+  bulletText: { flex: 1, color: "#374151", fontSize: 13.5, fontWeight: "700", lineHeight: 18 },
+
+  calcItem: { backgroundColor: "#F8FAFC", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#F1F5F9", marginBottom: 8 },
+  calcText: { color: "#374151", fontSize: 13, fontWeight: "700", lineHeight: 18 },
+
+  // Documents
+  docCategory: { marginTop: 6, marginBottom: 14 },
+  docHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
+  docTitle: { fontSize: 16, fontWeight: "900", color: "#0F172A" },
+  subCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#EEF2F7",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 2,
+    marginBottom: 10,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerText: {
-    marginLeft: 12,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  tabNavigation: {
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-  },
-  activeTabButton: {
-    borderBottomColor: '#4F46E5',
-  },
-  tabButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  activeTabButtonText: {
-    color: '#4F46E5',
-  },
-  tabContainer: {
-    flex: 1,
-  },
-  tabContent: {
-    flex: 1,
-    padding: 20,
-  },
-  tabTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 8,
-  },
-  tabSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 24,
-  },
-  
-  // Guides Tab Styles
-  guidesGrid: {
-    gap: 16,
-  },
-  guideCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    overflow: 'hidden',
-  },
-  guideHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 8,
-  },
-  guideType: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  guideContent: {
-    padding: 16,
-    paddingTop: 0,
-  },
-  guideRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
-  },
-  guideItem: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    gap: 4,
-  },
-  guideLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  guideValue: {
-    fontSize: 13,
-    color: '#0F172A',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  subTitle: { fontSize: 14, fontWeight: "900", color: "#4F46E5", marginBottom: 8 },
 
-  // Eligibility Tab Styles
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 16,
-  },
-  eligibilityCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    overflow: 'hidden',
-  },
-  eligibilityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 8,
-  },
-  eligibilityType: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  criteriaList: {
-    padding: 16,
-    paddingTop: 0,
-  },
-  criterionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 12,
-  },
-  criterionDot: {
-    width: 6,
-    height: 6,
-    backgroundColor: '#4F46E5',
-    borderRadius: 3,
-  },
-  criterionText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-    flex: 1,
-  },
-  calculationCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    overflow: 'hidden',
-  },
-  calculationHeader: {
-    padding: 16,
-  },
-  calculationType: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  calculationList: {
-    padding: 16,
-    paddingTop: 0,
-  },
-  calculationItem: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-  },
-  calculationText: {
-    fontSize: 13,
-    color: '#374151',
-    fontWeight: '500',
-    lineHeight: 18,
-  },
+  // Empty
+  emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 22, gap: 6 },
+  emptyText: { color: "#6B7280", fontWeight: "700" },
 
-  // Documents Tab Styles
-  documentCategory: {
-    marginBottom: 32,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  subcategoryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  subcategoryTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#4F46E5',
-    marginBottom: 12,
-  },
-  documentsList: {
-    gap: 8,
-  },
-  documentItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  documentDot: {
-    width: 6,
-    height: 6,
-    backgroundColor: '#10B981',
-    borderRadius: 3,
-    marginTop: 6,
-  },
-  documentText: {
-    fontSize: 13,
-    color: '#374151',
-    fontWeight: '500',
-    flex: 1,
-    lineHeight: 18,
-  },
-});
+  // Centered container
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+})
 
-export default ProductInfoScreen;
+export default ProductInfoScreen

@@ -1,20 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
-  Platform,
-  Alert 
+// src/screens/leads/CreateLeadScreen.tsx
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  KeyboardAvoidingView, Platform, Alert
 } from 'react-native';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as yup from 'yup';
 import { RootState } from '../../redux/store';
 import { createLead, updateLead, fetchLeadById, clearError } from '../../redux/slices/leadsSlice';
 import { fetchLoanTypes, fetchAssociates } from '../../redux/slices/filterSlice';
@@ -24,52 +19,19 @@ import LoadingButton from '../../components/LoadingButton';
 import { Snackbar } from 'react-native-paper';
 import { ArrowLeft, Plus, CreditCard as Edit3 } from 'lucide-react-native';
 
-// Validation Schema
-const leadSchema = yup.object().shape({
-  applicantName: yup
-    .string()
-    .required('Applicant name is required')
-    .min(2, 'Name must be at least 2 characters'),
-  applicantProfile: yup
-    .string()
-    .required('Applicant profile is required'),
-  mobile: yup
-    .string()
-    .required('Mobile number is required')
-    .matches(/^[0-9]{10}$/, 'Enter a valid 10-digit mobile number'),
-  email: yup
-    .string()
-    .required('Email is required')
-    .email('Enter a valid email address'),
-  pincode: yup
-    .string()
-    .required('Pincode is required')
-    .matches(/^[0-9]{6}$/, 'Enter a valid 6-digit pincode'),
-  loantType: yup
-    .string()
-    .required('Loan type is required'),
-  loanAmount: yup
-    .string()
-    .required('Loan amount is required')
-    .matches(/^[0-9]+$/, 'Enter a valid amount'),
-  city: yup
-    .string()
-    .required('City is required'),
-  state: yup
-    .string()
-    .required('State is required'),
-  businessName: yup
-    .string()
-    .optional(),
-  comments: yup
-    .string()
-    .optional(),
-  partnerId: yup
-    .string()
-    .optional(),
-  assignto: yup
-    .string()
-    .optional(),
+// Validation (only fields from the UI)
+const leadSchema = yup.object({
+  applicantName: yup.string().required('Applicant name is required').min(2, 'Name must be at least 2 characters'),
+  applicantProfile: yup.string().required('Applicant profile is required'),
+  mobile: yup.string().required('Mobile number is required').matches(/^[0-9]{10}$/, 'Enter a valid 10-digit mobile number'),
+  email: yup.string().required('Email is required').email('Enter a valid email address'),
+  pincode: yup.string().required('Pincode is required').matches(/^[0-9]{6}$/, 'Enter a valid 6-digit pincode'),
+  loantType: yup.string().required('Loan type is required'),
+  loanAmount: yup.string().required('Loan amount is required').matches(/^[0-9]+$/, 'Enter a valid amount'),
+  city: yup.string().required('City is required'),
+  state: yup.string().required('State is required'),
+  businessName: yup.string().optional(),
+  comments: yup.string().optional(),
 });
 
 interface LeadFormData {
@@ -84,8 +46,6 @@ interface LeadFormData {
   state: string;
   businessName?: string;
   comments?: string;
-  partnerId?: string;
-  assignto?: string;
 }
 
 const applicantProfileOptions = [
@@ -100,30 +60,18 @@ const CreateLeadScreen: React.FC = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { leadId } = route.params || {};
+  const leadId: string | undefined = route.params?.leadId;
   const isEditMode = !!leadId;
 
-  const { 
-    selectedLead,
-    isLoading, 
-    isUpdating,
-    error 
-  } = useSelector((state: RootState) => state.leads);
-  
-  const { 
-    loanTypes, 
-    associates 
-  } = useSelector((state: RootState) => state.filter);
+  const { selectedLead, isLoading, isUpdating, error } = useSelector((s: RootState) => s.leads);
+  const { loanTypes } = useSelector((s: RootState) => s.filter);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const lastPincodeRef = useRef<string>('');
 
   const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-    reset,
+    control, handleSubmit, formState: { errors },
+    setValue, watch, reset,
   } = useForm<LeadFormData>({
     resolver: yupResolver(leadSchema),
     defaultValues: {
@@ -138,24 +86,18 @@ const CreateLeadScreen: React.FC = () => {
       state: '',
       businessName: '',
       comments: '',
-      partnerId: '',
-      assignto: '',
     },
   });
 
+  // fetch lists + lead (if editing)
   useEffect(() => {
-    // Fetch required data
     dispatch(fetchLoanTypes() as any);
-    dispatch(fetchAssociates() as any);
-
-    // If edit mode, fetch lead data
-    if (isEditMode && leadId) {
-      dispatch(fetchLeadById(leadId) as any);
-    }
+    dispatch(fetchAssociates() as any); // harmless even though we removed the UI
+    if (isEditMode && leadId) dispatch(fetchLeadById(leadId) as any);
   }, [dispatch, isEditMode, leadId]);
 
+  // populate when editing
   useEffect(() => {
-    // Populate form with lead data in edit mode
     if (isEditMode && selectedLead) {
       reset({
         applicantName: selectedLead.applicantName,
@@ -164,126 +106,146 @@ const CreateLeadScreen: React.FC = () => {
         email: selectedLead.email,
         pincode: selectedLead.pincode.pincode,
         loantType: selectedLead.loan.type,
-        loanAmount: selectedLead.loan.amount.toString(),
+        loanAmount: String(selectedLead.loan.amount ?? ''),
         city: selectedLead.pincode.city,
         state: selectedLead.pincode.state,
         businessName: selectedLead.businessName || '',
         comments: selectedLead.comments || '',
-        partnerId: selectedLead.partnerId._id,
-        assignto: selectedLead.associate?._id || '',
       });
     }
   }, [isEditMode, selectedLead, reset]);
 
-  const handleBack = () => {
-    navigation.goBack();
-  };
+  // Pincode → City/State (debounce, read-only fields)
+  const watchPincode = watch('pincode');
+  useEffect(() => {
+    const pin = watchPincode || '';
+    if (pin === lastPincodeRef.current) return;
+    lastPincodeRef.current = pin;
 
-  const onSubmit = async (data: LeadFormData) => {
+    if (pin.length !== 6) {
+      setValue('city', '');
+      setValue('state', '');
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      fetch(`https://api.postalpincode.in/pincode/${pin}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data) && data[0]?.Status === 'Success' && data[0]?.PostOffice?.length) {
+            const { State, District } = data[0].PostOffice[0];
+            setValue('state', State || '');
+            setValue('city', District || '');
+          }
+        })
+        .catch(() => {});
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [watchPincode, setValue]);
+
+  const isSalaried = (() => {
+    const v = (watch('applicantProfile') || '').toLowerCase();
+    return v.includes('salaried');
+  })();
+
+  const loanTypeOptions = loanTypes.map((t) => ({
+    label: t.name.replace(/_/g, ' '),
+    value: t.name,
+  }));
+
+  const handleBack = () => navigation.goBack();
+
+  const onSubmit: SubmitHandler<LeadFormData> = async (data) => {
     try {
       setIsSubmitting(true);
-      
+
       if (isEditMode) {
-        const result = await dispatch(updateLead({
-          leadId: selectedLead!.id,
-          ...data,
-          assignedTo: data.assignto || '',
-          lenderType: selectedLead?.lenderType || '',
-        }) as any);
-        
+        const result = await dispatch(
+          updateLead({
+            leadId: selectedLead!.id,
+            applicantName: data.applicantName,
+            applicantProfile: data.applicantProfile,
+            mobile: data.mobile,
+            email: data.email,
+            pincode: data.pincode,
+            loantType: data.loantType,
+            loanAmount: data.loanAmount,
+            comments: data.comments || '',
+            businessName: isSalaried ? '' : (data.businessName || ''),
+            city: data.city,
+            state: data.state,
+            // not on form — pass sensible defaults:
+            partnerId: selectedLead?.partnerId?._id || '',
+            assignedTo: selectedLead?.associate?._id || '',
+            lenderType: selectedLead?.lenderType || '',
+          }) as any
+        );
+
         if (updateLead.fulfilled.match(result)) {
-          Alert.alert(
-            'Success!',
-            'Lead updated successfully.',
-            [
-              {
-                text: 'OK',
-                onPress: () => navigation.navigate('LeadsTab'),
-              },
-            ]
-          );
+          Alert.alert('Success!', 'Lead updated successfully.', [
+            { text: 'OK', onPress: () => navigation.goBack() },
+          ]);
         }
       } else {
-        const result = await dispatch(createLead(data) as any);
-        
+        const result = await dispatch(
+          createLead({
+            applicantName: data.applicantName,
+            applicantProfile: data.applicantProfile,
+            mobile: data.mobile,
+            email: data.email,
+            pincode: data.pincode,
+            loantType: data.loantType,
+            loanAmount: data.loanAmount,
+            comments: data.comments || '',
+            businessName: isSalaried ? '' : (data.businessName || ''),
+            city: data.city,
+            state: data.state,
+            // not in UI — backend still expects keys:
+            partnerId: '',
+            assignedTo: '',
+            lenderType: '',
+          }) as any
+        );
+
         if (createLead.fulfilled.match(result)) {
-          Alert.alert(
-            'Success!',
-            'Lead created successfully.',
-            [
-              {
-                text: 'OK',
-                onPress: () => navigation.navigate('LeadsTab'),
-              },
-            ]
-          );
+          Alert.alert('Success!', 'Lead created successfully.', [
+            { text: 'OK', onPress: () => navigation.goBack() },
+          ]);
         }
       }
-    } catch (error) {
-      console.error('Lead submission failed:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDismissError = () => {
-    dispatch(clearError());
-  };
-
-  // Convert data to dropdown options
-  const loanTypeOptions = loanTypes.map(type => ({
-    label: type.name.replace(/_/g, ' '),
-    value: type.name,
-  }));
-
-  const associateOptions = associates.map(associate => ({
-    label: associate.name,
-    value: associate._id,
-  }));
-
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={['#4F46E5', '#7C3AED', '#EC4899']}
-        style={styles.gradient}
-      >
-        {/* Header */}
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <LinearGradient colors={['#4F46E5', '#7C3AED', '#EC4899']} style={styles.gradient}>
+        {/* Smaller header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <ArrowLeft size={24} color="#FFFFFF" strokeWidth={2} />
+            <ArrowLeft size={22} color="#FFFFFF" strokeWidth={2} />
           </TouchableOpacity>
-          
+
           <View style={styles.headerContent}>
             <View style={styles.iconContainer}>
-              {isEditMode ? (
-                <Edit3 size={20} color="#FFFFFF" strokeWidth={2} />
-              ) : (
-                <Plus size={20} color="#FFFFFF" strokeWidth={2} />
-              )}
+              {isEditMode ? <Edit3 size={18} color="#FFFFFF" strokeWidth={2} /> : <Plus size={18} color="#FFFFFF" strokeWidth={2} />}
             </View>
-            <Text style={styles.headerTitle}>
-              {isEditMode ? 'Edit Lead' : 'Create New Lead'}
-            </Text>
+            <Text style={styles.headerTitle}>{isEditMode ? 'Edit Lead' : 'Create Lead'}</Text>
             <Text style={styles.headerSubtitle}>
               {isEditMode ? 'Update lead information' : 'Fill in the details to create a new lead'}
             </Text>
           </View>
         </View>
 
-        {/* Form Container */}
+        {/* Form */}
         <View style={styles.formContainer}>
-          <ScrollView 
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Applicant Information Section */}
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* Applicant */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Applicant Information</Text>
-              
+
               <CustomTextInput
                 name="applicantName"
                 control={control}
@@ -298,84 +260,94 @@ const CreateLeadScreen: React.FC = () => {
                 label="Applicant Profile"
                 value={watch('applicantProfile')}
                 options={applicantProfileOptions}
-                onSelect={(value) => setValue('applicantProfile', value)}
+                onSelect={(v) => setValue('applicantProfile', v)}
                 placeholder="Select applicant profile"
                 error={errors.applicantProfile?.message}
                 required
               />
 
               <View style={styles.row}>
-                <CustomTextInput
-                  name="mobile"
-                  control={control}
-                  label="Mobile Number"
-                  placeholder="Enter mobile number"
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                  error={errors.mobile}
-                  style={[styles.input, styles.halfWidth]}
-                />
+                <View style={styles.halfWidth}>
+                  <CustomTextInput
+                    name="mobile"
+                    control={control}
+                    label="Mobile Number"
+                    placeholder="Enter mobile number"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                    error={errors.mobile}
+                    style={styles.input}
+                  />
+                </View>
 
-                <CustomTextInput
-                  name="email"
-                  control={control}
-                  label="Email Address"
-                  placeholder="Enter email address"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  error={errors.email}
-                  style={[styles.input, styles.halfWidth]}
-                />
+                <View style={styles.halfWidth}>
+                  <CustomTextInput
+                    name="email"
+                    control={control}
+                    label="Email Address"
+                    placeholder="Enter email address"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    error={errors.email}
+                    style={styles.input}
+                  />
+                </View>
               </View>
             </View>
 
-            {/* Location Information Section */}
+            {/* Location */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Location Information</Text>
-              
-              <View style={styles.row}>
-                <CustomTextInput
-                  name="pincode"
-                  control={control}
-                  label="Pincode"
-                  placeholder="Enter pincode"
-                  keyboardType="numeric"
-                  maxLength={6}
-                  error={errors.pincode}
-                  style={[styles.input, styles.halfWidth]}
-                />
 
-                <CustomTextInput
-                  name="city"
-                  control={control}
-                  label="City"
-                  placeholder="Enter city"
-                  autoCapitalize="words"
-                  error={errors.city}
-                  style={[styles.input, styles.halfWidth]}
-                />
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <CustomTextInput
+                    name="pincode"
+                    control={control}
+                    label="Pincode"
+                    placeholder="Enter pincode"
+                    keyboardType="numeric"
+                    maxLength={6}
+                    error={errors.pincode}
+                    style={styles.input}
+                  />
+                </View>
+
+                <View style={styles.halfWidth}>
+                  <CustomTextInput
+                    name="city"
+                    control={control}
+                    label="City"
+                    placeholder="Auto-filled from pincode"
+                    autoCapitalize="words"
+                    error={errors.city}
+                    style={styles.input}
+                    editable={false}
+                  />
+                </View>
               </View>
 
               <CustomTextInput
                 name="state"
                 control={control}
                 label="State"
-                placeholder="Enter state"
+                placeholder="Auto-filled from pincode"
                 autoCapitalize="words"
                 error={errors.state}
                 style={styles.input}
+                editable={false}
               />
             </View>
 
-            {/* Loan Information Section */}
+            {/* Loan */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Loan Information</Text>
-              
+
               <CustomDropdown
                 label="Loan Type"
                 value={watch('loantType')}
                 options={loanTypeOptions}
-                onSelect={(value) => setValue('loantType', value)}
+                onSelect={(v) => setValue('loantType', v)}
                 placeholder="Select loan type"
                 error={errors.loantType?.message}
                 required
@@ -392,19 +364,21 @@ const CreateLeadScreen: React.FC = () => {
               />
             </View>
 
-            {/* Additional Information Section */}
+            {/* Additional */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Additional Information</Text>
-              
-              <CustomTextInput
-                name="businessName"
-                control={control}
-                label="Business Name (Optional)"
-                placeholder="Enter business name"
-                autoCapitalize="words"
-                error={errors.businessName}
-                style={styles.input}
-              />
+
+              {!isSalaried && (
+                <CustomTextInput
+                  name="businessName"
+                  control={control}
+                  label="Business Name"
+                  placeholder="Enter business name"
+                  autoCapitalize="words"
+                  error={errors.businessName}
+                  style={styles.input}
+                />
+              )}
 
               <CustomTextInput
                 name="comments"
@@ -418,27 +392,9 @@ const CreateLeadScreen: React.FC = () => {
               />
             </View>
 
-            {/* Assignment Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Assignment (Optional)</Text>
-              
-              <CustomDropdown
-                label="Assign to Associate"
-                value={watch('assignto') || ''}
-                options={[{ label: 'No Assignment', value: '' }, ...associateOptions]}
-                onSelect={(value) => setValue('assignto', value)}
-                placeholder="Select associate"
-              />
-            </View>
-
-            {/* Submit Button */}
+            {/* Buttons */}
             <View style={styles.buttonContainer}>
-              <LoadingButton
-                title="Cancel"
-                onPress={handleBack}
-                mode="outlined"
-                style={styles.cancelButton}
-              />
+              <LoadingButton title="Cancel" onPress={handleBack} mode="outlined" style={styles.cancelButton} />
               <LoadingButton
                 title={isEditMode ? 'Update Lead' : 'Create Lead'}
                 onPress={handleSubmit(onSubmit)}
@@ -447,19 +403,15 @@ const CreateLeadScreen: React.FC = () => {
               />
             </View>
 
-            <View style={{ height: 100 }} />
+            <View style={{ height: 80 }} />
           </ScrollView>
         </View>
       </LinearGradient>
 
-      {/* Error Snackbar */}
       <Snackbar
         visible={!!error}
-        onDismiss={handleDismissError}
-        action={{
-          label: 'Dismiss',
-          onPress: handleDismissError,
-        }}
+        onDismiss={() => dispatch(clearError())}
+        action={{ label: 'Dismiss', onPress: () => dispatch(clearError()) }}
       >
         {error}
       </Snackbar>
@@ -468,90 +420,32 @@ const CreateLeadScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-  },
-  header: {
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-  },
-  backButton: {
-    marginBottom: 20,
-    padding: 4,
-  },
-  headerContent: {
-    alignItems: 'center',
-  },
+  container: { flex: 1 },
+  gradient: { flex: 1 },
+  header: { paddingTop: 32, paddingHorizontal: 16, paddingBottom: 16 },
+  backButton: { marginBottom: 12, padding: 4 },
+  headerContent: { alignItems: 'center' },
   iconContainer: {
-    width: 60,
-    height: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+    width: 48, height: 48, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 6, textAlign: 'center' },
+  headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.85)', textAlign: 'center', fontWeight: '500' },
   formContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 8,
+    flex: 1, backgroundColor: '#fff',
+    borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 6,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 24,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 16,
-    letterSpacing: -0.3,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  halfWidth: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  submitButton: {
-    flex: 2,
-  },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 20 },
+  section: { marginBottom: 26 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A', marginBottom: 12, letterSpacing: -0.2 },
+  input: { marginBottom: 14 },
+  row: { flexDirection: 'row', gap: 12 },
+  halfWidth: { flex: 1 },
+  buttonContainer: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  cancelButton: { flex: 1 },
+  submitButton: { flex: 2 },
 });
 
 export default CreateLeadScreen;

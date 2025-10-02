@@ -1,3 +1,4 @@
+// src/screens/registration/PreviewStep.tsx
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,7 +10,7 @@ import { Snackbar } from 'react-native-paper';
 import { ChevronLeft, CreditCard as Edit3, Check } from 'lucide-react-native';
 
 const PreviewStep: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<any>();
   const navigation = useNavigation<any>();
   const { 
     basicInfo, 
@@ -17,27 +18,25 @@ const PreviewStep: React.FC = () => {
     addressDetails, 
     bankDetails, 
     documents, 
-    isLoading, 
+    isSubmitting, 
     error 
   } = useSelector((state: RootState) => state.registration);
 
   const handleSubmit = async () => {
+    console.log('🟢 handleSubmit pressed');
     try {
-      const result = await dispatch(submitRegistration() as any);
-      if (submitRegistration.fulfilled.match(result)) {
+      const action = await dispatch(submitRegistration());
+      if (submitRegistration.fulfilled.match(action)) {
         Alert.alert(
           'Success!',
           'Your registration has been submitted successfully. You will receive a confirmation email shortly.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('Login'),
-            },
-          ]
+          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
         );
+      } else {
+        Alert.alert('Failed', String(action.payload || 'Submission failed'));
       }
-    } catch (error) {
-      console.error('Registration submission failed:', error);
+    } catch (e: any) {
+      Alert.alert('Error', String(e?.message || e));
     }
   };
 
@@ -173,7 +172,7 @@ const PreviewStep: React.FC = () => {
           <LoadingButton
             title="Submit Registration"
             onPress={handleSubmit}
-            loading={isLoading}
+            loading={isSubmitting}
             style={styles.submitButton}
           />
         </View>
