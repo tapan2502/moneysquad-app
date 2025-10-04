@@ -1,6 +1,6 @@
 // src/utils/api.ts
 import axios, { AxiosRequestConfig } from 'axios';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import Constants from 'expo-constants';
 import { secureStorage } from './secureStorage';
 
@@ -10,6 +10,7 @@ import { secureStorage } from './secureStorage';
  */
 const FORCE_DEV_IP_BASE = 'http://178.236.185.178:5003/api/';      // <- your IP (with /api)
 
+const HTTPS_FALLBACK_BASE = 'https://api.moneysquad.in/api';        // <- your HTTPS fallback
 
 /**
  * ===== Base URL selection =====
@@ -17,7 +18,7 @@ const FORCE_DEV_IP_BASE = 'http://178.236.185.178:5003/api/';      // <- your IP
  * 0) FORCE_DEV_IP_BASE (if set and __DEV__)
  * 1) EXPO_PUBLIC_API_BASE_URL
  * 2) Dev: infer host for emulator / device and use DEV_PORT
- * 3) Prod: EXPO_PUBLIC_API_BASE_URL should be set in your prod env
+ * 3) Prod: HTTPS_FALLBACK_BASE
  */
 const DEV_PORT = Number(process.env.EXPO_PUBLIC_API_PORT || 5003);
 
@@ -46,8 +47,8 @@ const computeBaseURL = () => {
     return `http://${host}:${DEV_PORT}/api`;
   }
 
-  // 3) Fallback (prod should set EXPO_PUBLIC_API_BASE_URL)
-  return 'https://your-prod-domain.example.com/api';
+  // 3) Fallback (prod)
+  return HTTPS_FALLBACK_BASE;
 };
 
 const BASE_URL = computeBaseURL();
@@ -58,6 +59,14 @@ console.log('🌐 [API CONFIG] Platform:', Platform.OS);
 console.log('🌐 [API CONFIG] Dev mode:', __DEV__);
 console.log('🌐 [API CONFIG] Expo hostUri:', Constants.expoConfig?.hostUri);
 
+// TEMP: show exactly what release is using (remove later if you want)
+if (!__DEV__) {
+  setTimeout(() => {
+    try { Alert.alert('BASE_URL', BASE_URL); } catch {}
+    try { console.error('BASE_URL:', BASE_URL); } catch {}
+  }, 400);
+}
+
 // ---- Axios instance ----
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -66,6 +75,12 @@ const apiClient = axios.create({
   maxBodyLength: Infinity as any,
   maxContentLength: Infinity as any,
 });
+
+// ===== Smart HTTPS fallback (APK builds) =====
+// If we are in release AND baseURL is the IP/HTTP, on "Network Error" switch to HTTPS and retry once.
+let _switchedToHttps = false;
+const _isRelease = !__DEV__;
+const _ipHttpBase = 'http://178.236.185.178:5003/api';
 
 // ---- Helpers ----
 const isFormData = (data: any): boolean =>
@@ -152,6 +167,32 @@ apiClient.interceptors.response.use(
       baseURL: error.config?.baseURL,
       platform: Platform.OS,
     });
+
+    // ===== Automatic HTTPS fallback & retry (release only) =====
+    const isNetworkError =
+      !error.response && !!error.request && (error.message?.includes('Network Error') || error.code === 'ECONNABORTED');
+
+    const wasUsingIpHttp =
+      typeof error.config?.baseURL === 'string' &&
+      error.config.baseURL.startsWith(_ipHttpBase);
+
+    if (_isRelease && isNetworkError && wasUsingIpHttp && !_switchedToHttps) {
+      try {
+        _switchedToHttps = true;
+        apiClient.defaults.baseURL = HTTPS_FALLBACK_BASE; // switch globally
+        const retryConfig = { ...error.config, baseURL: HTTPS_FALLBACK_BASE };
+        console.warn('🔁 [API FALLBACK] Switching to HTTPS and retrying once:', {
+          newBase: HTTPS_FALLBACK_BASE,
+          url: retryConfig.url,
+        });
+        try { Alert.alert('API Fallback', `Switched to HTTPS:\n${HTTPS_FALLBACK_BASE}`); } catch {}
+        const retryResp = await apiClient.request(retryConfig);
+        return retryResp;
+      } catch (retryErr) {
+        console.error('🔴 [API FALLBACK] HTTPS retry failed:', retryErr);
+        // fall through to existing error handling
+      }
+    }
 
     if (error.response) {
       const message = error.response?.data?.message || error.response?.data?.error;
