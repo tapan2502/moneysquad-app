@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Calendar } from 'lucide-react-native';
+import { Calendar, X } from 'lucide-react-native';
 
 interface CustomDatePickerProps {
-  label: string;
+  label?: string;
   value: string;
   onDateChange: (date: string) => void;
   placeholder?: string;
   error?: string;
   required?: boolean;
+  hideLabel?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
+  clearable?: boolean;
 }
 
 const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
@@ -19,6 +23,10 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
   placeholder = 'Select date',
   error,
   required = false,
+  hideLabel = false,
+  containerStyle,
+  labelStyle,
+  clearable = false,
 }) => {
   const [showPicker, setShowPicker] = useState(false);
 
@@ -59,12 +67,18 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
     }
   };
 
+  const formatDateForStorage = (date: Date) => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowPicker(false);
     
     if (selectedDate && event.type !== 'dismissed') {
-      const dateString = selectedDate.toISOString().split('T')[0];
-      onDateChange(dateString);
+      onDateChange(formatDateForStorage(selectedDate));
     }
   };
 
@@ -73,12 +87,19 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
     return new Date(value);
   };
 
+  const handleClear = () => {
+    setShowPicker(false);
+    onDateChange('');
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>
-        {label}
-        {required && <Text style={styles.required}> *</Text>}
-      </Text>
+    <View style={[styles.container, containerStyle]}>
+      {!hideLabel && label !== undefined && (
+        <Text style={[styles.label, labelStyle]}>
+          {label}
+          {required && <Text style={styles.required}> *</Text>}
+        </Text>
+      )}
       
       <TouchableOpacity
         style={[styles.dateInput, error && styles.dateInputError]}
@@ -87,6 +108,13 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
         <Text style={[styles.dateText, !value && styles.placeholder]}>
           {value ? formatDate(value) : placeholder}
         </Text>
+
+        {clearable && !!value && (
+          <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
+            <X size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
+
         <Calendar size={20} color="#6B7280" />
       </TouchableOpacity>
 
@@ -145,6 +173,10 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 14,
     marginTop: 4,
+  },
+  clearButton: {
+    marginRight: 12,
+    padding: 4,
   },
 });
 

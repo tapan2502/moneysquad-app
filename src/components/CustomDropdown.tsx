@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { ChevronDown, Check } from 'lucide-react-native';
 
 interface DropdownOption {
@@ -8,13 +8,18 @@ interface DropdownOption {
 }
 
 interface CustomDropdownProps {
-  label: string;
+  label?: string;
   value: string;
   options: DropdownOption[];
   onSelect: (value: string) => void;
   placeholder?: string;
   error?: string;
   required?: boolean;
+  hideLabel?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
+  dropdownStyle?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  placeholderStyle?: StyleProp<TextStyle>;
 }
 
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
@@ -25,6 +30,11 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   placeholder = 'Select an option',
   error,
   required = false,
+  hideLabel = false,
+  containerStyle,
+  dropdownStyle,
+  textStyle,
+  placeholderStyle,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -36,17 +46,19 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>
-        {label}
-        {required && <Text style={styles.required}> *</Text>}
-      </Text>
+    <View style={[styles.container, containerStyle]}>
+      {!hideLabel && label !== undefined && (
+        <Text style={styles.label}>
+          {label}
+          {required && <Text style={styles.required}> *</Text>}
+        </Text>
+      )}
       
       <TouchableOpacity
-        style={[styles.dropdown, error && styles.dropdownError]}
+        style={[styles.dropdown, dropdownStyle, error && styles.dropdownError]}
         onPress={() => setIsVisible(true)}
       >
-        <Text style={[styles.dropdownText, !selectedOption && styles.placeholder]}>
+        <Text style={[styles.dropdownText, textStyle, !selectedOption && styles.placeholder, !selectedOption && placeholderStyle]}>
           {selectedOption ? selectedOption.label : placeholder}
         </Text>
         <ChevronDown size={20} color="#6B7280" />

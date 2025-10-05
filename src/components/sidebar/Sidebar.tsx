@@ -11,9 +11,10 @@ import {
   Text,
   ScrollView,
   Image,
+  Linking, // ✅ add
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { X, LogOut, ChevronDown, Sparkles } from "lucide-react-native";
+import { X, LogOut, ChevronDown } from "lucide-react-native";
 import type { RootState } from "../../redux/store";
 import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice";
 import { logout } from "../../redux/slices/authSlice";
@@ -30,16 +31,26 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
   const dispatch = useDispatch();
   const { userData, loading } = useSelector((s: RootState) => s.userData);
 
-  // ✅ ALL HOOKS FIRST (fixed order, no conditionals)
+  // ✅ ALL HOOKS FIRST
   const [personalOpen, setPersonalOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
   const [localVisible, setLocalVisible] = useState(visible);
   const progress = useRef(new Animated.Value(0)).current;
 
-  // Scroll-related state/refs MUST be before any early return
+  // Scroll-related
   const [bodyHeight, setBodyHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const scrollRef = useRef<ScrollView | null>(null);
+
+  // ✅ safe link opener
+  const openURLSafe = async (url: string) => {
+    try {
+      const can = await Linking.canOpenURL(url);
+      if (can) await Linking.openURL(url);
+    } catch {
+      // no-op
+    }
+  };
 
   // Show/hide animation
   useEffect(() => {
@@ -84,10 +95,10 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
 
   const isPartner = userData && isPartnerUser(userData);
 
-  // ✅ Early return AFTER all hooks are declared
+  // Early return AFTER hooks
   if (!localVisible) return null;
 
-  // Derived values (not hooks)
+  // Derived values
   const backdropOpacity = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.6],
@@ -101,8 +112,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
     outputRange: [0.98, 1],
   });
 
-  const computedScrollEnabled =
-    personalOpen || docsOpen || contentHeight > bodyHeight;
+  const computedScrollEnabled = personalOpen || docsOpen || contentHeight > bodyHeight;
 
   return (
     <Modal transparent visible={localVisible} onRequestClose={requestClose} statusBarTranslucent>
@@ -125,7 +135,6 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     style={styles.logoImage}
                     resizeMode="contain"
                   />
-         
                 </View>
                 <View>
                   <Text style={styles.headerTitle}>MoneySquad</Text>
@@ -160,7 +169,6 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
               >
                 <ProfileCard user={userData} />
 
-             
                 <BankingCard bank={userData.bankDetails} />
 
                 {/* Documents accordion */}
@@ -196,7 +204,14 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                   </View>
                   <Text style={styles.noteText}>
                     To update your account details including bank information and documents, please visit our web
-                    application <Text style={styles.noteLink}>moneysquad.in</Text>
+                    application{" "}
+                    <Text
+                      style={styles.noteLink}
+                      onPress={() => openURLSafe("https://app.moneysquad.in")}
+                      accessibilityRole="link"
+                    >
+                      https://app.moneysquad.in
+                    </Text>
                   </Text>
                   <View style={styles.noteAccent} />
                 </View>
@@ -251,14 +266,8 @@ const styles = StyleSheet.create({
   },
 
   // Header
-  headerContainer: {
-    position: "relative",
-    overflow: "hidden",
-  },
-  headerGradient: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#00B9AE",
-  },
+  headerContainer: { position: "relative", overflow: "hidden" },
+  headerGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: "#00B9AE" },
   header: {
     paddingTop: 50,
     paddingHorizontal: 16,
@@ -267,12 +276,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   logoContainer: {
     position: "relative",
     width: 40,
@@ -282,35 +286,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  logoImage: {
-    width: 26,
-    height: 26,
-    tintColor: "#FFFFFF",
-  },
-  logoBadge: {
-    position: "absolute",
-    top: -3,
-    right: -3,
-    width: 16,
-    height: 16,
-    backgroundColor: "#1F2937",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.8)",
-    fontWeight: "500",
-  },
+  logoImage: { width: 26, height: 26, tintColor: "#FFFFFF" },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.3 },
+  headerSubtitle: { fontSize: 12, color: "rgba(255, 255, 255, 0.8)", fontWeight: "500" },
   closeBtn: {
     width: 40,
     height: 40,
@@ -341,16 +319,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  accHeaderActive: {
-    borderColor: "#00B9AE",
-    backgroundColor: "#F0FDFC",
-  },
-  accHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
+  accHeaderActive: { borderColor: "#00B9AE", backgroundColor: "#F0FDFC" },
+  accHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   docIcon: {
     width: 32,
     height: 32,
@@ -359,9 +329,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  docIconText: {
-    fontSize: 14,
-  },
+  docIconText: { fontSize: 14 },
   accTitle: { fontSize: 15, fontWeight: "800", color: "#0F172A", flex: 1 },
 
   // Note
@@ -375,20 +343,8 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
   },
-  noteAccent: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: 4,
-    height: "100%",
-    backgroundColor: "#F59E0B",
-  },
-  noteHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 8,
-  },
+  noteAccent: { position: "absolute", top: 0, left: 0, width: 4, height: "100%", backgroundColor: "#F59E0B" },
+  noteHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   noteIconContainer: {
     width: 24,
     height: 24,
@@ -397,12 +353,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  noteIconText: {
-    fontSize: 12,
-  },
+  noteIconText: { fontSize: 12 },
   noteTitle: { fontSize: 14, fontWeight: "800", color: "#92400E" },
   noteText: { fontSize: 13, color: "#78350F", lineHeight: 18, marginLeft: 34 },
-  noteLink: { fontWeight: "700", color: "#00B9AE" },
+  noteLink: { fontWeight: "900", color: "#00B9AE", textDecorationLine: "underline" },
 
   // Loading/Error States
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
@@ -437,14 +391,8 @@ const styles = StyleSheet.create({
   errorText: { color: "#EF4444", fontWeight: "600", fontSize: 13, textAlign: "center" },
 
   // Footer
-  footerContainer: {
-    backgroundColor: "#FFFFFF",
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#ECEFF3",
-  },
+  footerContainer: { backgroundColor: "#FFFFFF" },
+  footer: { padding: 16, borderTopWidth: 1, borderTopColor: "#ECEFF3" },
   logoutBtn: {
     flexDirection: "row",
     gap: 10,

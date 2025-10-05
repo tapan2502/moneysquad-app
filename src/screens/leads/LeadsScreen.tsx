@@ -1,296 +1,408 @@
-// src/screens/leads/LeadsScreen.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, TextInput, StatusBar } from 'react-native';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
+import { Snackbar } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
 import { RootState } from '../../redux/store';
 import { fetchAllLeads, clearError, Lead } from '../../redux/slices/leadsSlice';
-import { Search, Filter, MapPin, Calendar, Building2, Plus } from 'lucide-react-native';
-import { Snackbar } from 'react-native-paper';
 
-const LeadsScreen: React.FC = () => {
+import LeadFilterModal, { FilterState } from '../leads/LeadFilterModal';
+import LeadCard from './LeadCard';
+
+const LeadsScreen = () => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const navigation = useNavigation<any>();
   const { leads, isLoading, error } = useSelector((state: RootState) => state.leads);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    status: [],
+    loanType: [],
+    lender: [],
+    manager: [],
+    associate: [],
+    dateFrom: '',
+    dateTo: '',
+  });
 
   useEffect(() => {
     dispatch(fetchAllLeads() as any);
   }, [dispatch]);
 
-  // Safer filtering (guards all possibly-null fields)
+  // Unique filter options from leads
+  const filterOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    const loanTypes = new Set<string>();
+    const lenders = new Set<string>();
+    const managers = new Set<string>();
+    const associates = new Set<string>();
+
+    leads.forEach((lead) => {
+      if (lead.status) statuses.add(lead.status);
+      if (lead.loan?.type) loanTypes.add(lead.loan.type);
+      if (lead.lenderType) lenders.add(lead.lenderType);
+      if (lead.manager) managers.add(`${lead.manager.firstName} ${lead.manager.lastName}`);
+      if (lead.associate) associates.add(`${lead.associate.firstName} ${lead.associate.lastName}`);
+    });
+
+    return {
+      statuses: Array.from(statuses),
+      loanTypes: Array.from(loanTypes),
+      lenders: Array.from(lenders),
+      managers: Array.from(managers),
+      associates: Array.from(associates),
+    };
+  }, [leads]);
+
+  // Filters + search
   const filteredLeads = useMemo<Lead[]>(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return leads;
-    return leads.filter((l) => {
-      const name = (l?.applicantName ?? '').toLowerCase();
-      const id = (l?.leadId ?? '').toLowerCase();
-      const mobile = l?.mobile ?? '';
-      const email = (l?.email ?? '').toLowerCase();
-      return (
-        name.includes(q) ||
-        id.includes(q) ||
-        mobile.includes(q) ||
-        email.includes(q)
-      );
-    });
-  }, [leads, searchQuery]);
+    return leads.filter((lead) => {
+      if (q) {
+        const name = (lead?.applicantName ?? '').toLowerCase();
+        const id = (lead?.leadId ?? '').toLowerCase();
+        const mobile = lead?.mobile ?? '';
+        const email = (lead?.email ?? '').toLowerCase();
+        const matchesSearch = name.includes(q) || id.includes(q) || mobile.includes(q) || email.includes(q);
+        if (!matchesSearch) return false;
+      }
+      if (filters.status.length > 0 && !filters.status.includes(lead.status || '')) return false;
+      if (filters.loanType.length > 0 && !filters.loanType.includes(lead.loan?.type || '')) return false;
+      if (filters.lender.length > 0 && !filters.lender.includes(lead.lenderType || '')) return false;
 
-  const handleRefresh = () => {
-    dispatch(fetchAllLeads() as any);
-  };
+      if (filters.manager.length > 0) {
+        const m = lead.manager ? `${lead.manager.firstName} ${lead.manager.lastName}` : '';
+        if (!filters.manager.includes(m)) return false;
+      }
+      if (filters.associate.length > 0) {
+        const a = lead.associate ? `${lead.associate.firstName} ${lead.associate.lastName}` : '';
+        if (!filters.associate.includes(a)) return false;
+      }
+      if (filters.dateFrom || filters.dateTo) {
+        const d = new Date(lead.statusUpdatedAt || lead.createdAt || '');
+        if (filters.dateFrom && d < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && d > new Date(filters.dateTo)) return false;
+      }
+      return true;
+    });
+  }, [leads, searchQuery, filters]);
+
+  const activeFilterCount = useMemo(
+    () =>
+      filters.status.length +
+      filters.loanType.length +
+      filters.lender.length +
+      filters.manager.length +
+      filters.associate.length +
+      (filters.dateFrom ? 1 : 0) +
+      (filters.dateTo ? 1 : 0),
+    [filters]
+  );
+
+  const handleRefresh = () => dispatch(fetchAllLeads() as any);
 
   const handleLeadPress = (lead: Lead) => {
     const id = (lead as any)?.id ?? (lead as any)?._id ?? lead.leadId;
     navigation.navigate('LeadDetails', { leadId: id });
   };
 
-  const handleCreateLead = () => {
-    navigation.navigate('CreateLead');
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '-';
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  const formatCurrency = (amount?: number) => {
-    const n = typeof amount === 'number' ? amount : 0;
-    if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
-    if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-    if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
-    return `₹${n.toLocaleString()}`;
-  };
-
   const getStatusColor = (status?: string) => {
     switch ((status ?? '').toLowerCase()) {
-      case 'new lead': return '#3B82F6';
-      case 'assigned': return '#F59E0B';
-      case 'pending': return '#8B5CF6';
-      case 'login': return '#06B6D4';
-      case 'approved': return '#10B981';
-      case 'disbursed': return '#059669';
-      case 'rejected': return '#EF4444';
-      case 'closed': return '#6B7280';
-      case 'expired': return '#DC2626';
-      default: return '#6B7280';
+      case 'new lead': return '#6BC6D4';
+      case 'pending': return '#FFD85A';
+      case 'login': return '#8B9EFF';
+      case 'approved': return '#6FD58A';
+      case 'rejected': return '#F0808B';
+      case 'disbursed': return '#12AA9E';
+      case 'closed': return '#A9B1B7';
+      case 'expired': return '#F0808B';
+      default: return '#A9B1B7';
     }
   };
 
-  const getStatusBackground = (status?: string) => `${getStatusColor(status)}15`; // 8-digit hex with alpha
-
-  const renderLeadItem = ({ item }: { item: Lead }) => {
-    const city = item?.pincode?.city ?? '-';
-    const state = item?.pincode?.state ?? '-';
-    const loanType = (item?.loan?.type ?? '').replace(/_/g, ' ');
-    const loanAmt = item?.loan?.amount;
-    const status = item?.status ?? 'Unknown';
-
-    return (
-      <TouchableOpacity style={styles.leadCard} onPress={() => handleLeadPress(item)} activeOpacity={0.7}>
-        {/* Header Row */}
-        <View style={styles.headerRow}>
-          <View style={styles.leadInfo}>
-            <Text style={styles.leadId}>#{item?.leadId ?? '-'}</Text>
-            <Text style={styles.applicantName} numberOfLines={1}>
-              {item?.applicantName ?? '-'}
-            </Text>
-          </View>
-
-          <View style={[styles.statusBadge, { backgroundColor: getStatusBackground(status) }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
-              {(status || 'UNKNOWN').toUpperCase()}
-            </Text>
-          </View>
-        </View>
-
-        {/* Details Grid */}
-        <View style={styles.detailsGrid}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Location</Text>
-            <View style={styles.detailValueRow}>
-              <MapPin size={12} color="#6B7280" strokeWidth={2} />
-              <Text style={styles.detailValue} numberOfLines={1}>{city}, {state}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Manager</Text>
-            <Text style={styles.detailValue} numberOfLines={1}>
-              {item?.manager ? `${item.manager.firstName} ${item.manager.lastName}` : 'Not Assigned'}
-            </Text>
-          </View>
-
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Lender</Text>
-            <Text style={styles.detailValue} numberOfLines={1}>
-              {item?.lenderType || 'Not Assigned'}
-            </Text>
-          </View>
-
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Loan</Text>
-            <Text style={styles.detailValue} numberOfLines={1}>
-              {loanType || '-'} {loanType ? ' - ' : ''}{formatCurrency(loanAmt)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.footerItem}>
-            <Calendar size={12} color="#9CA3AF" strokeWidth={2} />
-            <Text style={styles.footerText}>Updated: {formatDate(item?.statusUpdatedAt)}</Text>
-          </View>
-
-          {!!item?.businessName && (
-            <View style={styles.footerItem}>
-              <Building2 size={12} color="#9CA3AF" strokeWidth={2} />
-              <Text style={styles.footerText} numberOfLines={1}>{item.businessName}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
+  const toggleFilter = (category: keyof FilterState, value: string) => {
+    setFilters((prev) => {
+      const current = prev[category] as string[];
+      return current.includes(value)
+        ? { ...prev, [category]: current.filter((v) => v !== value) }
+        : { ...prev, [category]: [...current, value] };
+    });
   };
 
-  const handleDismissError = () => {
-    dispatch(clearError());
+  const handleDateFromChange = (date: string) => {
+    setFilters((prev) => ({ ...prev, dateFrom: date }));
   };
+
+  const handleDateToChange = (date: string) => {
+    setFilters((prev) => ({ ...prev, dateTo: date }));
+  };
+
+  const clearFilters = () =>
+    setFilters({
+      status: [],
+      loanType: [],
+      lender: [],
+      manager: [],
+      associate: [],
+      dateFrom: '',
+      dateTo: '',
+    });
+
+  const handleDismissError = () => dispatch(clearError());
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      {/* Paint under status bar; content padded via insets */}
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+
+      {/* Premium header with gradient */}
+      <LinearGradient
+        colors={['#EEF2FF', '#FFFFFF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: Math.max(insets.top, 8) }]}
+      >
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>Leads</Text>
           <Text style={styles.headerSubtitle}>
-            {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''}
+            {filteredLeads.length} of {leads.length} lead{leads.length !== 1 ? 's' : ''}
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.createButton} onPress={handleCreateLead} activeOpacity={0.8}>
-          <Plus size={20} color="#FFFFFF" strokeWidth={2.5} />
+        <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('CreateLead')} activeOpacity={0.85}>
+          <Feather name="plus" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      {/* Sleek curved toolbar: Search + Filter */}
+      <View style={styles.toolbar}>
         <View style={styles.searchBar}>
-          <Search size={18} color="#6B7280" strokeWidth={2} />
+          <Feather name="search" size={18} color="#6B7280" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search leads by name, ID, mobile, or email"
+            placeholder="Search name, ID, mobile, email"
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#9CA3AF"
             autoCapitalize="none"
+            returnKeyType="search"
           />
         </View>
 
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter size={18} color="#4F46E5" strokeWidth={2} />
+        <TouchableOpacity
+          style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
+          onPress={() => setShowFilterModal(true)}
+          activeOpacity={0.9}
+        >
+          <Feather name="filter" size={18} color={activeFilterCount > 0 ? '#FFFFFF' : '#4F46E5'} />
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
-      {/* Leads List */}
+      {/* Active filter summary (compact) */}
+      {activeFilterCount > 0 && (
+        <View style={styles.activeFiltersBar}>
+          <Text numberOfLines={1} style={styles.activeFiltersText}>
+            {activeFilterCount} active filter{activeFilterCount > 1 ? 's' : ''}
+          </Text>
+          <TouchableOpacity onPress={clearFilters} style={styles.clearInline}>
+            <Text style={styles.clearInlineText}>Reset</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
         data={filteredLeads}
-        renderItem={renderLeadItem}
         keyExtractor={(item) => (item?.id ?? (item as any)?._id ?? item.leadId)}
-        contentContainerStyle={styles.listContainer}
+        renderItem={({ item }) => <LeadCard lead={item} onPress={handleLeadPress} />}
+        contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(24, insets.bottom + 16) }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={handleRefresh}
-            colors={['#4F46E5']}
-            tintColor="#4F46E5"
-          />
-        }
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={handleRefresh} colors={['#4F46E5']} tintColor="#4F46E5" />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
+            <View style={styles.emptyIcon}>
+              <Feather name="search" size={48} color="#CBD5E1" />
+            </View>
             <Text style={styles.emptyTitle}>No leads found</Text>
             <Text style={styles.emptySubtitle}>
-              {searchQuery ? 'Try adjusting your search' : 'Leads will appear here once created'}
+              {searchQuery || activeFilterCount > 0
+                ? 'Try adjusting your search or filters'
+                : 'Leads will appear here once created'}
             </Text>
           </View>
         }
       />
 
-      {/* Error Snackbar */}
+      <LeadFilterModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        onApply={() => setShowFilterModal(false)}
+        onClear={clearFilters}
+        filters={filters}
+        toggleFilter={toggleFilter}
+        options={filterOptions}
+        getStatusColor={(s) => getStatusColor(s)}
+        setDateFrom={handleDateFromChange}
+        setDateTo={handleDateToChange}
+      />
+
       <Snackbar
         visible={!!error}
         onDismiss={handleDismissError}
         action={{ label: 'Dismiss', onPress: handleDismissError }}
+        style={styles.snackbar}
       >
         {error}
       </Snackbar>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: '#F6F8FB' },
+
+  // Header — compact, padded by insets, subtle divider
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 50,
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E6EAF2',
   },
   headerLeft: { flex: 1 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#0F172A', marginBottom: 4 },
-  headerSubtitle: { fontSize: 14, color: '#64748B', fontWeight: '500' },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#0F172A', letterSpacing: -0.4 },
+  headerSubtitle: { fontSize: 13, color: '#6B7280', fontWeight: '700', marginTop: 4 },
+
   createButton: {
-    width: 44, height: 44, backgroundColor: '#4F46E5', borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+    width: 48,
+    height: 48,
+    backgroundColor: '#4F46E5',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  searchContainer: {
-    flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 12,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+
+  // Sleek curved toolbar (search + filter)
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18, // curved edges for the whole bar
+    borderWidth: 1,
+    borderColor: '#E6EAF2',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   searchBar: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC',
-    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: '#E2E8F0',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 999, // pill
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E6EAF2',
   },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#0F172A', fontWeight: '500' },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14.5,
+    color: '#0F172A',
+    fontWeight: '600',
+  },
+
   filterButton: {
-    width: 44, height: 44, backgroundColor: '#EEF2FF', borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E0E7FF',
+    width: 44,
+    height: 44,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+    position: 'relative',
   },
-  listContainer: { padding: 16, paddingBottom: 100 },
-  leadCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F1F5F9',
+  filterButtonActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  filterBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#EF4444',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  leadInfo: { flex: 1, marginRight: 12 },
-  leadId: { fontSize: 12, color: '#4F46E5', fontWeight: '700', marginBottom: 4, letterSpacing: 0.5 },
-  applicantName: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  statusText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
-  detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 16, gap: 12 },
-  detailItem: { width: '48%', marginBottom: 8 },
-  detailLabel: { fontSize: 11, color: '#64748B', fontWeight: '600', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  detailValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  detailValue: { fontSize: 13, color: '#0F172A', fontWeight: '600', flex: 1 },
-  footer: { borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12, gap: 8 },
-  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  footerText: { fontSize: 12, color: '#64748B', fontWeight: '500', flex: 1 },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: '#6B7280', textAlign: 'center', paddingHorizontal: 32 },
+  filterBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+
+  // Active filters summary
+  activeFiltersBar: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E6EAF2',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  activeFiltersText: { fontSize: 13, color: '#334155', fontWeight: '700' },
+  clearInline: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#EF4444',
+  },
+  clearInlineText: { color: '#EF4444', fontSize: 12, fontWeight: '900' },
+
+  // List / empty / snackbar
+  listContent: { padding: 16 },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 },
+  emptyIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#334155', marginBottom: 10, letterSpacing: -0.3 },
+  emptySubtitle: { fontSize: 15, color: '#64748B', textAlign: 'center', lineHeight: 22 },
+
+  snackbar: { backgroundColor: '#0F172A' },
 });
 
 export default LeadsScreen;

@@ -1,8 +1,9 @@
-import React, { memo } from "react"
+import React, { memo, useMemo, useState } from "react"
 import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native"
 import { Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from "lucide-react-native"
-import { formatCurrency, formatDate, getStatusColor } from "../utils/comissionUtils"
+import { formatCurrency, formatDate, getStatusColor, getCurrentMonthKey, getMonthKey, formatMonthLabel, sortMonthKeysDesc } from "../utils/comissionUtils"
 import { DisbursedLead } from "@/src/redux/slices/commissionSlice"
+import CustomDropdown from "@/src/components/CustomDropdown"
 
 type Props = {
   data: DisbursedLead[]
@@ -55,14 +56,156 @@ const Row = ({ item }: { item: DisbursedLead }) => {
   )
 }
 
+const CURRENT_MONTH = getCurrentMonthKey()
+
+const capitalize = (value: string) => value.replace(/\b\w/g, (char) => char.toUpperCase())
+
 const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
+  const [selectedMonth, setSelectedMonth] = useState<string>(CURRENT_MONTH)
+  const [selectedLender, setSelectedLender] = useState<string>("")
+  const [selectedStatus, setSelectedStatus] = useState<string>("")
+  const [selectedAssociate, setSelectedAssociate] = useState<string>("")
+
+  const monthOptions = useMemo(() => {
+    const months = new Set<string>()
+    data.forEach((item) => {
+      const key = getMonthKey(item?.disbursedId?.actualDisbursedDate || item?.createdAt)
+      if (key) months.add(key)
+    })
+    if (CURRENT_MONTH) months.add(CURRENT_MONTH)
+    const sortedKeys = sortMonthKeysDesc(Array.from(months))
+    const monthList = sortedKeys.map((key) => ({ value: key, label: formatMonthLabel(key) }))
+    return [
+      { label: "All Months", value: "" },
+      ...monthList,
+    ]
+  }, [data])
+
+  const lenderOptions = useMemo(() => {
+    const lenders = new Set<string>()
+    data.forEach((item) => {
+      if (item?.lender?.name) lenders.add(item.lender.name)
+    })
+    return [
+      { label: "All Lenders", value: "" },
+      ...Array.from(lenders).sort().map((name) => ({ label: name, value: name })),
+    ]
+  }, [data])
+
+  const statusOptions = useMemo(() => {
+    const statuses = new Set<string>()
+    data.forEach((item) => {
+      if (item?.payoutStatus) statuses.add(item.payoutStatus.toLowerCase())
+    })
+    return [
+      { label: "All Status", value: "" },
+      ...Array.from(statuses)
+        .sort()
+        .map((status) => ({ label: capitalize(status), value: status })),
+    ]
+  }, [data])
+
+  const associateOptions = useMemo(() => {
+    const associates = new Set<string>()
+    data.forEach((item) => {
+      if (item?.associate?.name) associates.add(item.associate.name)
+    })
+    return [
+      { label: "All Associates", value: "" },
+      ...Array.from(associates)
+        .sort()
+        .map((name) => ({ label: name, value: name })),
+    ]
+  }, [data])
+
+  const filteredData = useMemo(() => {
+    return data.filter((item) => {
+      const monthKey = getMonthKey(item?.disbursedId?.actualDisbursedDate || item?.createdAt)
+      if (selectedMonth && monthKey !== selectedMonth) return false
+
+      if (selectedLender && item?.lender?.name !== selectedLender) return false
+
+      if (selectedStatus && (item?.payoutStatus || "").toLowerCase() !== selectedStatus) return false
+
+      if (selectedAssociate && item?.associate?.name !== selectedAssociate) return false
+
+      return true
+    })
+  }, [data, selectedAssociate, selectedLender, selectedMonth, selectedStatus])
+
+  const countLabel = selectedMonth ? formatMonthLabel(selectedMonth) : "all time"
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Disbursed Leads</Text>
-      <Text style={styles.subtitle}>{data.length} total disbursements with payout details</Text>
+      <Text style={styles.subtitle}>
+        {filteredData.length} disbursement{filteredData.length === 1 ? "" : "s"} ({countLabel})
+      </Text>
+
+      <View style={styles.filtersRow}>
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Month</Text>
+          <CustomDropdown
+            hideLabel
+            value={selectedMonth}
+            onSelect={setSelectedMonth}
+            options={monthOptions}
+            placeholder="Select month"
+            containerStyle={styles.inlineDropdownContainer}
+            dropdownStyle={styles.filterDropdown}
+            textStyle={styles.filterText}
+            placeholderStyle={styles.filterPlaceholder}
+          />
+        </View>
+
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Search Lender</Text>
+          <CustomDropdown
+            hideLabel
+            value={selectedLender}
+            onSelect={setSelectedLender}
+            options={lenderOptions}
+            placeholder="Search lender"
+            containerStyle={styles.inlineDropdownContainer}
+            dropdownStyle={styles.filterDropdown}
+            textStyle={styles.filterText}
+            placeholderStyle={styles.filterPlaceholder}
+          />
+        </View>
+
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Payout Status</Text>
+          <CustomDropdown
+            hideLabel
+            value={selectedStatus}
+            onSelect={setSelectedStatus}
+            options={statusOptions}
+            placeholder="All status"
+            containerStyle={styles.inlineDropdownContainer}
+            dropdownStyle={styles.filterDropdown}
+            textStyle={styles.filterText}
+            placeholderStyle={styles.filterPlaceholder}
+          />
+        </View>
+
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Search Associate</Text>
+          <CustomDropdown
+            hideLabel
+            value={selectedAssociate}
+            onSelect={setSelectedAssociate}
+            options={associateOptions}
+            placeholder="Search associate"
+            containerStyle={styles.inlineDropdownContainer}
+            dropdownStyle={styles.filterDropdown}
+            textStyle={styles.filterText}
+            placeholderStyle={styles.filterPlaceholder}
+          />
+        </View>
+      </View>
 
       <FlatList
-        data={data}
+        data={filteredData}
         keyExtractor={(it) => it._id}
         renderItem={({ item }) => <Row item={item} />}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
@@ -82,7 +225,45 @@ const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   title: { fontSize: 20, fontWeight: "900", color: "#0F172A" },
-  subtitle: { fontSize: 13, color: "#64748B", marginTop: 2, marginBottom: 12 },
+  subtitle: { fontSize: 13, color: "#64748B", marginTop: 2, marginBottom: 16 },
+  filtersRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 12,
+  },
+  filterItem: {
+    flex: 1,
+    minWidth: 160,
+  },
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  inlineDropdownContainer: {
+    marginBottom: 0,
+  },
+  filterDropdown: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  filterText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  filterPlaceholder: {
+    color: "#9CA3AF",
+    fontWeight: "600",
+  },
   list: {
     backgroundColor: "#fff",
     borderRadius: 14,

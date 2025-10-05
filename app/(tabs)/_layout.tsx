@@ -1,8 +1,14 @@
 import { Tabs } from "expo-router"
 import { View, Text } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Users, Chrome as Home, Gift, BookOpen, CircleHelp as HelpCircle, DollarSign } from "lucide-react-native"
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets()
+  const bottomInset = insets.bottom || 0
+  const paddingBottom = Math.max(bottomInset + 8, 16)
+  const tabHeight = 72 + bottomInset
+
   return (
     <Tabs
       screenOptions={{
@@ -12,9 +18,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: "#000000",
           borderTopWidth: 0,
-          height: 110, // Increased height for better spacing
-          paddingBottom: 35, // Increased bottom padding to prevent mobile nav overlap
-          paddingTop: 6,
+          height: tabHeight,
+          paddingBottom,
+          paddingTop: 8,
           shadowColor: "#000",
           shadowOffset: {
             width: 0,
@@ -117,7 +123,7 @@ export default function TabLayout() {
                 backgroundColor: focused ? "#00B9AE" : "#333333",
                 justifyContent: "center",
                 alignItems: "center",
-                marginTop: -25,
+                marginTop: -24 - bottomInset * 0.2,
                 shadowColor: focused ? "#00B9AE" : "transparent",
                 shadowOffset: {
                   width: 0,

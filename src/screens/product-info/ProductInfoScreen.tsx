@@ -1,3 +1,4 @@
+// src/screens/resource/ProductInfoScreen.tsx
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
@@ -45,15 +46,15 @@ const ProductInfoScreen: React.FC = () => {
 
   // ---------- Styling helpers for loan types ----------
   const typeColor: Record<string, string> = {
-    "PL - Term Loan": "#3B82F6",
-    "PL - Overdraft": "#6366F1",
-    "BL - Term Loan": "#10B981",
-    "BL - Overdraft": "#F59E0B",
-    "SEP - Term Loan": "#8B5CF6",
-    "SEP - Overdraft": "#EF4444",
+    "PL - Term Loan": "#2563EB",
+    "PL - Overdraft": "#7C3AED",
+    "BL - Term Loan": "#059669",
+    "BL - Overdraft": "#D97706",
+    "SEP - Term Loan": "#6D28D9",
+    "SEP - Overdraft": "#DC2626",
   }
-  const getLoanTypeColor = (t: string) => typeColor[t] || "#6B7280"
-  const getTypeBg = (t: string) => `${getLoanTypeColor(t)}15`
+  const getLoanTypeColor = (t: string) => typeColor[t] || "#475569"
+  const getTypeBg = (t: string) => `${getLoanTypeColor(t)}12` // softer glassy bg
 
   // ---------- Derived, null-safe pieces ----------
   const guides = useMemo(() => productInfo?.guides ?? [], [productInfo])
@@ -66,16 +67,19 @@ const ProductInfoScreen: React.FC = () => {
     (guides.length === 0 && Object.keys(eligCriteria).length === 0 && Object.keys(documents).length === 0)
 
   // ---------- Tabs ----------
-  const Tab = ({ id, label, icon: Icon }: { id: TabKey; label: string; icon: any }) => (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => setActiveTab(id)}
-      style={[styles.segBtn, activeTab === id && styles.segBtnActive]}
-    >
-      <Icon size={14} color={activeTab === id ? "#fff" : "#4F46E5"} strokeWidth={2} />
-      <Text style={[styles.segText, activeTab === id && styles.segTextActive]}>{label}</Text>
-    </TouchableOpacity>
-  )
+  const Tab = ({ id, label, icon: Icon }: { id: TabKey; label: string; icon: any }) => {
+    const active = activeTab === id
+    return (
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => setActiveTab(id)}
+        style={[styles.segBtn, active && styles.segBtnActive]}
+      >
+        <Icon size={14} color={active ? "#FFFFFF" : "#334155"} strokeWidth={2} />
+        <Text style={[styles.segText, active && styles.segTextActive]}>{label}</Text>
+      </TouchableOpacity>
+    )
+  }
 
   // ---------- Renderers ----------
   const renderGuides = () => (
@@ -86,7 +90,7 @@ const ProductInfoScreen: React.FC = () => {
       contentContainerStyle={{ paddingBottom: 32 }}
     >
       <Text style={styles.title}>Loan Product Guides</Text>
-      <Text style={styles.subtitle}>Interest rates, fees, and key terms for each product</Text>
+      <Text style={styles.subtitle}>Rates, fees, and key terms—curated per product</Text>
 
       {guides.length === 0 ? (
         <EmptyState label="No guides available right now" />
@@ -95,19 +99,23 @@ const ProductInfoScreen: React.FC = () => {
           {guides.map((g: any, idx: number) => (
             <View key={g._id || idx} style={styles.card}>
               <View style={[styles.cardHeader, { backgroundColor: getTypeBg(g.type) }]}>
-                <CreditCard size={18} color={getLoanTypeColor(g.type)} strokeWidth={2} />
-                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(g.type) }]}>{g.type}</Text>
+                <View style={[styles.cardIconWrap, { backgroundColor: getTypeBg(g.type), borderColor: `${getLoanTypeColor(g.type)}22` }]}>
+                  <CreditCard size={16} color={getLoanTypeColor(g.type)} />
+                </View>
+                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(g.type) }]} numberOfLines={1}>
+                  {g.type}
+                </Text>
               </View>
 
               <View style={styles.cardBodyPad}>
                 <View style={styles.metricsRow}>
-                  <MetricBox label="INTEREST RATE" value={g.interestRate || "—"} Icon={Percent} />
-                  <MetricBox label="PROCESSING FEE" value={g.processingFees || "—"} Icon={DollarSign} />
+                  <MetricBox label="Interest Rate" value={g.interestRate || "—"} Icon={Percent} />
+                  <MetricBox label="Processing Fee" value={g.processingFees || "—"} Icon={DollarSign} />
                 </View>
 
                 <View style={styles.metricsRow}>
-                  <MetricBox label="LOAN AMOUNT" value={g.loanAmount || "—"} Icon={DollarSign} />
-                  <MetricBox label="TENURE" value={g.tenure || "—"} Icon={Calendar} />
+                  <MetricBox label="Loan Amount" value={g.loanAmount || "—"} Icon={DollarSign} />
+                  <MetricBox label="Tenure" value={g.tenure || "—"} Icon={Calendar} />
                 </View>
               </View>
             </View>
@@ -125,7 +133,7 @@ const ProductInfoScreen: React.FC = () => {
       contentContainerStyle={{ paddingBottom: 32 }}
     >
       <Text style={styles.title}>Eligibility Criteria</Text>
-      <Text style={styles.subtitle}>Requirements and calculation methods for approval</Text>
+      <Text style={styles.subtitle}>Requirements and how we evaluate your application</Text>
 
       {/* Criteria blocks */}
       <View style={styles.section}>
@@ -136,8 +144,12 @@ const ProductInfoScreen: React.FC = () => {
           Object.entries(eligCriteria).map(([type, list]: any) => (
             <View key={type} style={styles.card}>
               <View style={[styles.cardHeader, { backgroundColor: getTypeBg(type) }]}>
-                <CheckCircle size={16} color={getLoanTypeColor(type)} strokeWidth={2} />
-                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]}>{type}</Text>
+                <View style={[styles.cardIconWrap, { backgroundColor: getTypeBg(type), borderColor: `${getLoanTypeColor(type)}22` }]}>
+                  <CheckCircle size={16} color={getLoanTypeColor(type)} />
+                </View>
+                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]} numberOfLines={1}>
+                  {type}
+                </Text>
               </View>
 
               <View style={styles.cardBodyPad}>
@@ -162,7 +174,9 @@ const ProductInfoScreen: React.FC = () => {
           Object.entries(eligCalc).map(([type, items]: any) => (
             <View key={type} style={styles.card}>
               <View style={[styles.cardHeader, { backgroundColor: getTypeBg(type) }]}>
-                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]}>{type}</Text>
+                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]} numberOfLines={1}>
+                  {type}
+                </Text>
               </View>
 
               <View style={styles.cardBodyPad}>
@@ -195,13 +209,15 @@ const ProductInfoScreen: React.FC = () => {
         Object.entries(documents).map(([category, docData]: any) => (
           <View key={category} style={styles.docCategory}>
             <View style={styles.docHeader}>
-              <FileText size={18} color="#4F46E5" strokeWidth={2} />
-              <Text style={styles.docTitle}>{category}</Text>
+              <View style={styles.docIcon}>
+                <FileText size={16} color="#4F46E5" />
+              </View>
+              <Text style={styles.docTitle} numberOfLines={1}>{category}</Text>
             </View>
 
             {Object.entries(docData?.subcategories ?? {}).map(([sub, docs]: any) => (
               <View key={sub} style={styles.subCard}>
-                <Text style={styles.subTitle}>{sub}</Text>
+                <Text style={styles.subTitle} numberOfLines={1}>{sub}</Text>
                 <View style={{ gap: 8 }}>
                   {docs.map((d: string, i: number) => (
                     <View key={i} style={styles.bulletRow}>
@@ -222,7 +238,7 @@ const ProductInfoScreen: React.FC = () => {
   if (productInfoLoading && !productInfo) {
     return (
       <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: "#0B1020" }}>
-        <LinearGradient colors={["#4F46E5", "#7C3AED"]} style={styles.hero}>
+        <LinearGradient colors={["#0B1220", "#111827"]} style={styles.hero}>
           <View style={styles.heroRow}>
             <View style={styles.heroIcon}>
               <BookOpen size={22} color="#fff" />
@@ -245,7 +261,12 @@ const ProductInfoScreen: React.FC = () => {
     <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
       <View style={styles.container}>
         {/* Premium hero header */}
-        <LinearGradient colors={["#4F46E5", "#7C3AED"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        <LinearGradient
+          colors={["#0B1220", "#111827"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
           <View style={styles.heroRow}>
             <View style={styles.heroIcon}>
               <BookOpen size={22} color="#fff" />
@@ -256,7 +277,7 @@ const ProductInfoScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Segmented Tabs */}
+          {/* Glassy Segmented Tabs */}
           <View style={styles.segment}>
             <Tab id="guides" label="Guides" icon={CreditCard} />
             <Tab id="eligibility" label="Eligibility" icon={CheckCircle} />
@@ -271,7 +292,7 @@ const ProductInfoScreen: React.FC = () => {
               <AlertCircle size={28} color="#9CA3AF" />
               <Text style={{ marginTop: 10, fontWeight: "800", color: "#374151" }}>No data available</Text>
               <Text style={{ marginTop: 4, color: "#6B7280", textAlign: "center" }}>
-                Try pulling to refresh or check back later.
+                Pull to refresh or check back later.
               </Text>
             </View>
           ) : activeTab === "guides" ? (
@@ -309,7 +330,7 @@ const MetricBox = ({
 }) => (
   <View style={styles.metric}>
     <View style={styles.metricIcon}>
-      <Icon size={16} color="#4F46E5" strokeWidth={2} />
+      <Icon size={15} color="#4F46E5" strokeWidth={2} />
     </View>
     <Text style={styles.metricLabel}>{label}</Text>
     <Text style={styles.metricValue}>{value}</Text>
@@ -318,7 +339,7 @@ const MetricBox = ({
 
 const EmptyState = ({ label }: { label: string }) => (
   <View style={styles.emptyWrap}>
-    <AlertCircle size={22} color="#9CA3AF" />
+    <AlertCircle size={20} color="#9CA3AF" />
     <Text style={styles.emptyText}>{label}</Text>
   </View>
 )
@@ -326,7 +347,7 @@ const EmptyState = ({ label }: { label: string }) => (
 /* ---------- Styles ---------- */
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0B1020" },
+  safe: { flex: 1, backgroundColor: "#0B1020" }, // dark scrim under the curved hero
   container: { flex: 1, backgroundColor: "#F8FAFC" },
 
   // Hero
@@ -342,25 +363,27 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.16)",
     alignItems: "center",
     justifyContent: "center",
   },
   heroTitle: { color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: -0.2 },
-  heroSub: { color: "rgba(255,255,255,0.95)", fontSize: 12.5, fontWeight: "700", marginTop: 2 },
+  heroSub: { color: "rgba(255,255,255,0.92)", fontSize: 12.5, fontWeight: "700", marginTop: 2 },
 
-  // Segment
+  // Segment (glassy)
   segment: {
     marginTop: 14,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(255,255,255,0.10)",
     borderRadius: 14,
     padding: 4,
     flexDirection: "row",
     gap: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.18)",
   },
   segBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 10,
     backgroundColor: "transparent",
     alignItems: "center",
@@ -368,26 +391,33 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: "center",
   },
-  segBtnActive: { backgroundColor: "#4F46E5" },
-  segText: { color: "#4F46E5", fontSize: 12.5, fontWeight: "900" },
-  segTextActive: { color: "#fff" },
+  segBtnActive: {
+    backgroundColor: "#4F46E5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  segText: { color: "#E5E7EB", fontSize: 12.5, fontWeight: "900", letterSpacing: 0.2 },
+  segTextActive: { color: "#FFFFFF" },
 
   // Body
   body: { flex: 1 },
 
   // Shared
   tabScroll: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
-  title: { fontSize: 18, fontWeight: "900", color: "#0F172A" },
-  subtitle: { fontSize: 13, color: "#64748B", marginTop: 4, marginBottom: 14 },
+  title: { fontSize: 18, fontWeight: "900", color: "#0F172A", letterSpacing: -0.2 },
+  subtitle: { fontSize: 12.5, color: "#64748B", marginTop: 4, marginBottom: 12, fontWeight: "700" },
 
-  grid: { gap: 14 },
+  grid: { gap: 12 },
 
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#EEF2F7",
+    borderColor: "#E8ECF3",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
@@ -399,53 +429,81 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
-  cardHeaderText: { fontSize: 14, fontWeight: "900" },
-  cardBodyPad: { padding: 14 },
+  cardIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  cardHeaderText: { fontSize: 13.5, fontWeight: "900", letterSpacing: 0.2 },
+  cardBodyPad: { padding: 12 },
 
-  metricsRow: { flexDirection: "row", gap: 12, marginBottom: 10 },
+  metricsRow: { flexDirection: "row", gap: 10, marginBottom: 8 },
   metric: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FBFCFF",
     borderRadius: 12,
-    padding: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: "#EEF2F7",
   },
   metricIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: "#EEF2FF",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 6,
   },
-  metricLabel: { fontSize: 10.5, color: "#64748B", fontWeight: "900" },
-  metricValue: { fontSize: 14, color: "#0F172A", fontWeight: "900", marginTop: 2 },
+  metricLabel: { fontSize: 10.5, color: "#64748B", fontWeight: "900", letterSpacing: 0.2 },
+  metricValue: { fontSize: 15, color: "#0F172A", fontWeight: "900", marginTop: 2 },
 
-  section: { marginTop: 10, gap: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: "900", color: "#0F172A" },
+  section: { marginTop: 8, gap: 10 },
+  sectionTitle: { fontSize: 15.5, fontWeight: "900", color: "#0F172A" },
 
   bulletRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#4F46E5", marginTop: 6 },
-  bulletText: { flex: 1, color: "#374151", fontSize: 13.5, fontWeight: "700", lineHeight: 18 },
+  bulletText: { flex: 1, color: "#1F2937", fontSize: 13.5, fontWeight: "700", lineHeight: 19 },
 
-  calcItem: { backgroundColor: "#F8FAFC", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#F1F5F9", marginBottom: 8 },
-  calcText: { color: "#374151", fontSize: 13, fontWeight: "700", lineHeight: 18 },
+  calcItem: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#EDF2F7",
+    marginBottom: 8,
+  },
+  calcText: { color: "#111827", fontSize: 13, fontWeight: "700", lineHeight: 18 },
 
   // Documents
-  docCategory: { marginTop: 6, marginBottom: 14 },
-  docHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
-  docTitle: { fontSize: 16, fontWeight: "900", color: "#0F172A" },
-  subCard: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 14,
+  docCategory: { marginTop: 6, marginBottom: 12 },
+  docHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  docIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#EEF2FF",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#EEF2F7",
+    borderColor: "#E0E7FF",
+  },
+  docTitle: { fontSize: 15, fontWeight: "900", color: "#0F172A" },
+  subCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E8ECF3",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -453,7 +511,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginBottom: 10,
   },
-  subTitle: { fontSize: 14, fontWeight: "900", color: "#4F46E5", marginBottom: 8 },
+  subTitle: { fontSize: 13, fontWeight: "900", color: "#4F46E5", marginBottom: 8 },
 
   // Empty
   emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 22, gap: 6 },

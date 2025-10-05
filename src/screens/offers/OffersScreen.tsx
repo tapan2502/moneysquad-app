@@ -19,8 +19,18 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigation } from "@react-navigation/native"
 import type { RootState } from "../../redux/store"
 import { fetchAllOffers, type BankOffer } from "../../redux/slices/offersSlice"
-import { Search, Gift, Star, Clock, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Copy, Eye, Percent, DollarSign } from "lucide-react-native"
-import { LinearGradient } from "expo-linear-gradient"
+import {
+  Search,
+  Gift,
+  Star,
+  Clock,
+  CircleCheck as CheckCircle,
+  TriangleAlert as AlertTriangle,
+  Copy,
+  Eye,
+  Percent,
+  DollarSign,
+} from "lucide-react-native"
 import * as Clipboard from "expo-clipboard"
 import { Snackbar } from "react-native-paper"
 
@@ -55,7 +65,6 @@ const OffersScreen: React.FC = () => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     if (Number.isNaN(date.getTime())) return "N/A"
-    // 28 Sep 2025
     return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
   }
 
@@ -111,17 +120,12 @@ const OffersScreen: React.FC = () => {
       >
         {/* HERO IMAGE */}
         <View style={styles.heroWrap}>
-          {/* Fallback color block if image missing */}
           {item.bankImage ? (
             <Image source={{ uri: item.bankImage }} style={styles.heroImage} resizeMode="cover" />
           ) : (
             <View style={[styles.heroImage, { backgroundColor: "#EEF2FF" }]} />
           )}
-          {/* overlay gradient */}
-          <LinearGradient
-            colors={["rgba(0,0,0,0.0)", "rgba(0,0,0,0.35)"]}
-            style={StyleSheet.absoluteFill}
-          />
+
           {/* top badges */}
           <View style={styles.heroTopRow}>
             {item.isFeatured && !expired && (
@@ -136,7 +140,7 @@ const OffersScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* bottom bank name + headline */}
+          {/* bottom bank name + headline (readable without gradient) */}
           <View style={styles.heroBottom}>
             <Text style={styles.bankName}>{item.bankName}</Text>
             <Text style={styles.headline} numberOfLines={2}>
@@ -215,28 +219,28 @@ const OffersScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      {/* HEADER */}
-      <LinearGradient colors={["#4F46E5", "#7C3AED"]} style={styles.header}>
-        <View accessible accessibilityRole="header">
-          <Text style={styles.title}>Premium Bank Offers</Text>
+      {/* HEADER (white, premium, compact) */}
+      <View style={styles.header}>
+        <View accessible accessibilityRole="header" style={styles.headerRow}>
+          <Text style={styles.title}>Bank Offers</Text>
           <Text style={styles.subtitle}>
             {filteredOffers.length} exclusive offer{filteredOffers.length !== 1 ? "s" : ""}
           </Text>
         </View>
 
-        {/* Search */}
+        {/* Sleek Search */}
         <View style={styles.searchWrap}>
-          <Search size={18} color="#4F46E5" />
+          <Search size={16} color="#64748B" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by bank, offer, or loan type..."
-            placeholderTextColor="#9CA3AF"
+            placeholder="Search bank, offer, or loan type"
+            placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
           />
         </View>
-      </LinearGradient>
+      </View>
 
       {/* LIST */}
       <FlatList
@@ -245,7 +249,9 @@ const OffersScreen: React.FC = () => {
         renderItem={renderOfferItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={handleRefresh} colors={["#4F46E5"]} tintColor="#4F46E5" />}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={handleRefresh} colors={["#4F46E5"]} tintColor="#4F46E5" />
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
@@ -275,42 +281,46 @@ const OffersScreen: React.FC = () => {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F8FAFC" },
+  safe: { flex: 1, backgroundColor: "#FFFFFF" },
 
   header: {
-    paddingTop: 8,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  subtitle: { fontSize: 13, color: "rgba(255,255,255,0.92)", fontWeight: "600" },
-
-  searchWrap: {
-    marginTop: 12,
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === "ios" ? 12 : 10,
+    paddingTop: 8,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E5E7EB",
+  },
+  headerRow: { marginBottom: 10 },
+  title: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#0F172A",
+    letterSpacing: -0.2,
+  },
+  subtitle: { fontSize: 12, color: "#6B7280", fontWeight: "700", marginTop: 2 },
+
+  // Sleek pill search
+  searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+    borderRadius: 22,
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "rgba(79,70,229,0.12)",
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 8 : 6,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: "#0F172A",
     fontWeight: "600",
+    paddingVertical: 0,
   },
 
-  listContent: { padding: 16, paddingBottom: 40 },
+  listContent: { padding: 16, paddingBottom: 40, backgroundColor: "#F8FAFC" },
 
   card: {
     backgroundColor: "#FFFFFF",
@@ -400,19 +410,19 @@ const styles = StyleSheet.create({
   metricValue: { fontSize: 16, fontWeight: "900", color: "#0F172A", marginTop: 2 },
   metricSub: { fontSize: 10, color: "#94A3B8", fontWeight: "600", marginTop: 2 },
 
-  tagsRow: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 6 },
+  tagsRow: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 6, backgroundColor: "#FFFFFF" },
   tag: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(79,70,229,0.1)",
+    backgroundColor: "rgba(79,70,229,0.08)",
     borderWidth: 1,
-    borderColor: "rgba(79,70,229,0.2)",
-    borderRadius: 10,
+    borderColor: "rgba(79,70,229,0.18)",
+    borderRadius: 999,
     paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
   },
-  tagText: { color: "#4F46E5", fontWeight: "800", fontSize: 11, letterSpacing: 0.3 },
+  tagText: { color: "#4F46E5", fontWeight: "800", fontSize: 11, letterSpacing: 0.2 },
 
-  featuresRow: { paddingHorizontal: 12, paddingBottom: 10 },
+  featuresRow: { paddingHorizontal: 12, paddingBottom: 10, backgroundColor: "#FFFFFF" },
   featuresTitle: { fontSize: 12, fontWeight: "800", color: "#4F46E5", marginBottom: 2 },
   featuresText: { fontSize: 13, color: "#475569", fontWeight: "600", lineHeight: 18 },
 
@@ -421,16 +431,17 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingBottom: 14,
+    backgroundColor: "#FFFFFF",
   },
   copyBtn: {
     flex: 1,
-    backgroundColor: "rgba(79,70,229,0.08)",
+    backgroundColor: "rgba(79,70,229,0.06)",
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(79,70,229,0.2)",
+    borderColor: "rgba(79,70,229,0.15)",
     flexDirection: "row",
     gap: 6,
   },

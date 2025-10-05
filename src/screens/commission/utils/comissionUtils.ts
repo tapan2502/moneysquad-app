@@ -35,3 +35,27 @@ export const normalizeSheetLabel = (value?: string) => {
   if (v.includes("business") || v.includes("sme") || v.includes("msme")) return "business"
   return v
 }
+
+const pad = (value: number) => value.toString().padStart(2, "0")
+
+export const getMonthKey = (input?: string | Date | null) => {
+  const date = input instanceof Date ? input : input ? new Date(input) : new Date()
+  if (Number.isNaN(date.getTime())) return ""
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`
+}
+
+export const formatMonthLabel = (monthKey: string) => {
+  if (!monthKey) return ""
+  const [year, month] = monthKey.split("-")
+  if (!year || !month) return monthKey
+  const date = new Date(Number(year), Number(month) - 1, 1)
+  if (Number.isNaN(date.getTime())) return monthKey
+  const shortMonth = date.toLocaleDateString("en-GB", { month: "short" })
+  const shortYear = year.slice(-2)
+  return `${shortMonth}'${shortYear}`
+}
+
+export const getCurrentMonthKey = () => getMonthKey(new Date())
+
+export const sortMonthKeysDesc = (keys: string[]) =>
+  [...keys].sort((a, b) => (a > b ? -1 : a < b ? 1 : 0))

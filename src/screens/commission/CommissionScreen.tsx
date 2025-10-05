@@ -83,7 +83,7 @@ const CommissionScreen: React.FC = () => {
           onPress={() => setActiveTab("payout")}
         />
         <TabButton
-          label="My Commission Grid"
+          label="Commission Grid"
           active={activeTab === "commission"}
           onPress={() => setActiveTab("commission")}
         />

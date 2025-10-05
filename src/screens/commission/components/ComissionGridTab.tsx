@@ -1,6 +1,14 @@
 import React, { memo, useMemo, useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from "react-native"
-import { DollarSign } from "lucide-react-native"
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  Pressable,
+} from "react-native"
+import { DollarSign, Triangle } from "lucide-react-native"
 
 type CommissionEntry = {
   _id: string
@@ -28,8 +36,20 @@ type Props = {
   userCommissionType?: string | null
 }
 
-const TabButton = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
-  <TouchableOpacity onPress={onPress} style={[styles.segmentBtn, active && styles.segmentBtnActive]}>
+const TabButton = ({
+  label,
+  active,
+  onPress,
+}: {
+  label: string
+  active: boolean
+  onPress: () => void
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.85}
+    style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+  >
     <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{label}</Text>
   </TouchableOpacity>
 )
@@ -39,8 +59,10 @@ const norm = (s?: string) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "")
 
 const categoryOf = (sheetType?: string): "individual" | "professional" | "business" => {
   const t = norm(sheetType)
-  const isIndividual = t.includes("individual") || t.includes("personal") || t.includes("pl") || t.includes("consumer")
-  const isProfessional = t.includes("professional") || t.includes("selfemployedprofessional") || t.includes("sep")
+  const isIndividual =
+    t.includes("individual") || t.includes("personal") || t.includes("pl") || t.includes("consumer")
+  const isProfessional =
+    t.includes("professional") || t.includes("selfemployedprofessional") || t.includes("sep")
   const isBusiness =
     t.includes("business") ||
     t.includes("selfemployed") ||
@@ -68,6 +90,8 @@ const readRate = (entry: CommissionEntry, keys: string[]): number => {
   }
   return 0
 }
+
+const { width: SCREEN_W } = Dimensions.get("window")
 
 const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommissionType }) => {
   // Lead sharing banner
@@ -97,7 +121,9 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
   const displayPlan: CommissionPlan | undefined = useMemo(() => {
     if (!plans?.length) return undefined
     if (userCommissionType) {
-      const m = plans.find((p) => p.commissionType?.toLowerCase() === userCommissionType?.toLowerCase())
+      const m = plans.find(
+        (p) => p.commissionType?.toLowerCase() === userCommissionType?.toLowerCase(),
+      )
       if (m) return m
     }
     return plans[0]
@@ -119,6 +145,14 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
   }, [displayPlan])
 
   const [subTab, setSubTab] = useState<"individual" | "professional" | "business">("individual")
+  const [popover, setPopover] = useState<{
+    id: string
+    text: string
+    x: number
+    y: number
+    visible: boolean
+  } | null>(null)
+
   const rawEntries = grouped[subTab] || []
 
   // normalize rows (compute tl/od) + filter rows with any value
@@ -137,60 +171,80 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
   if (!displayPlan) {
     return (
       <View style={styles.emptyWrap}>
-        <Text style={styles.title}>Commission Grid</Text>
         <View style={styles.defaultCard}>
           <Text style={styles.defaultTitle}>DEFAULT RATES</Text>
           <Text style={styles.defaultText}>
-            Commission rates will be displayed here once your plan is activated. Contact support for details.
+            Commission rates will be displayed here once your plan is activated. Contact support
+            for details.
           </Text>
         </View>
       </View>
     )
   }
 
-  const renderRow = ({ item }: { item: any }) => (
-    <View style={styles.row}>
-      {/* Lender (truncate, 2 lines max) */}
-      <View style={[styles.cell, { flex: 2 }]}>
-        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.strong}>
-          {item.lenderName || "-"}
-        </Text>
-        {!!item.remark && (
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.mutedItalic}>
-            {item.remark}
-          </Text>
-        )}
-      </View>
+  const closePopover = () => setPopover(null)
 
-      {/* Term Loan */}
-      <View style={[styles.cellCenter, { flex: 1 }]}>
-        <Text style={styles.strong}>{item.tl > 0 ? `${item.tl}%` : "-"}</Text>
-      </View>
+  const renderRow = ({ item }: { item: any }) => {
+    const isOpen = popover?.visible && popover?.id === item._id
 
-      {/* Overdraft */}
-      <View style={[styles.cellCenter, { flex: 1 }]}>
-        <Text style={styles.strong}>{item.od > 0 ? `${item.od}%` : "-"}</Text>
+    return (
+      <View style={styles.row}>
+        {/* Lender + remark trigger */}
+        <View style={[styles.cell, { flex: 2 }]}>
+          <View style={styles.lenderRow}>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.strong}>
+              {item.lenderName || "-"}
+            </Text>
+
+            {!!item.remark && (
+              <Pressable
+                onPressIn={(e) => {
+                  const { pageX, pageY } = e.nativeEvent
+                  // Compute popover x so it stays within screen
+                  const desiredX = pageX - 120 // half of pop width guess
+                  const clampedX = Math.max(12, Math.min(desiredX, SCREEN_W - 12 - 240))
+                  setPopover((prev) =>
+                    prev?.id === item._id && prev.visible
+                      ? null
+                      : { id: item._id, text: item.remark, x: clampedX, y: pageY, visible: true },
+                  )
+                }}
+                style={[styles.triPill, isOpen && styles.triPillActive]}
+                android_ripple={{ color: "#E5E7FF", borderless: false }}
+              >
+                <Triangle
+                  size={13}
+                  color={isOpen ? "#ffffff" : "#4F46E5"}
+                  fill={isOpen ? "#4F46E5" : "transparent"}
+                />
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+        {/* Term Loan */}
+        <View style={[styles.cellCenter, { flex: 1 }]}>
+          <Text style={styles.strong}>{item.tl > 0 ? `${item.tl}%` : "-"}</Text>
+        </View>
+
+        {/* Overdraft */}
+        <View style={[styles.cellCenter, { flex: 1 }]}>
+          <Text style={styles.strong}>{item.od > 0 ? `${item.od}%` : "-"}</Text>
+        </View>
       </View>
-    </View>
-  )
+    )
+  }
 
   return (
     <View style={{ flex: 1, padding: 16 }}>
-      <Text style={styles.title}>Commission Grid</Text>
-      <Text style={styles.subtitle}>Your commission rates by customer type</Text>
-
-      <View style={styles.planBadge}>
-        <Text style={styles.planText}>{(displayPlan.commissionType || "PLAN").toUpperCase()} PLAN</Text>
-      </View>
-
-      {/* 3-category segment */}
+      {/* Sleek segmented control (no big title/description) */}
       <View style={styles.segment}>
         <TabButton label="Individual" active={subTab === "individual"} onPress={() => setSubTab("individual")} />
         <TabButton label="Professional" active={subTab === "professional"} onPress={() => setSubTab("professional")} />
         <TabButton label="Business" active={subTab === "business"} onPress={() => setSubTab("business")} />
       </View>
 
-      {/* Non-scrollable (no horizontal) compact table */}
+      {/* Compact table */}
       <View style={styles.tableCard}>
         <View style={styles.sheetHeaderRow}>
           <Text style={[styles.sheetHeaderText, { flex: 2, textAlign: "left" }]}>LENDER</Text>
@@ -209,45 +263,66 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
             keyExtractor={(it) => it._id}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 8 }}
+            extraData={popover?.id}
           />
         )}
       </View>
+
+      {/* Floating Popover */}
+      {popover?.visible && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          {/* backdrop tap to close */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={closePopover} />
+
+          {/* bubble */}
+          <View
+            style={[
+              styles.popAbs,
+              {
+                left: popover.x,
+                top: Math.max(70, popover.y - 120), // show above finger, clamp from top
+              },
+            ]}
+            pointerEvents="box-none"
+          >
+            <View style={styles.popCard}>
+              <Text style={styles.popText}>{popover.text}</Text>
+            </View>
+            <View style={styles.popCaret} />
+          </View>
+        </View>
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 20, fontWeight: "800", color: "#0F172A" },
-  subtitle: { fontSize: 13, color: "#64748B", marginTop: 4, marginBottom: 12 },
-
-  planBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#4F46E5",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 12,
-  },
-  planText: { color: "#fff", fontSize: 12, fontWeight: "800", letterSpacing: 0.6 },
-
+  // Sleek segmented control
   segment: {
     flexDirection: "row",
-    backgroundColor: "#EEF2FF",
-    borderRadius: 12,
+    backgroundColor: "#F2F4FF",
+    borderRadius: 18,
     padding: 4,
     gap: 6,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E3E6FF",
   },
   segmentBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 8,
+    borderRadius: 14,
     alignItems: "center",
   },
   segmentBtnActive: {
     backgroundColor: "#4F46E5",
+    shadowColor: "#4F46E5",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  segmentText: { fontSize: 13, fontWeight: "700", color: "#475569" },
+  segmentText: { fontSize: 12.5, fontWeight: "800", color: "#586174", letterSpacing: 0.2 },
   segmentTextActive: { color: "#fff" },
 
   tableCard: {
@@ -260,10 +335,10 @@ const styles = StyleSheet.create({
   sheetHeaderRow: {
     flexDirection: "row",
     backgroundColor: "#64748B",
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 14,
   },
-  sheetHeaderText: { color: "#fff", fontWeight: "800", fontSize: 11, textAlign: "center", letterSpacing: 0.5 },
+  sheetHeaderText: { color: "#fff", fontWeight: "900", fontSize: 10.5, textAlign: "center", letterSpacing: 0.6 },
 
   row: {
     flexDirection: "row",
@@ -273,10 +348,50 @@ const styles = StyleSheet.create({
     borderTopColor: "#F1F5F9",
   },
   cell: { justifyContent: "center", paddingRight: 6 },
+  lenderRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+
+  // Attractive triangle trigger (pill with subtle depth)
+  triPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: "#EEF2FF",
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
+  },
+  triPillActive: {
+    backgroundColor: "#4F46E5",
+    borderColor: "#4F46E5",
+  },
+
   cellCenter: { alignItems: "center", justifyContent: "center" },
-  strong: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
-  muted: { fontSize: 11, color: "#64748B", fontWeight: "500" },
-  mutedItalic: { fontSize: 11, color: "#64748B", fontWeight: "500", fontStyle: "italic" },
+  strong: { fontSize: 13, fontWeight: "800", color: "#0F172A", letterSpacing: 0.2 },
+  muted: { fontSize: 11, color: "#64748B", fontWeight: "600" },
+
+  // Popover (floating)
+  popAbs: {
+    position: "absolute",
+    width: 240,
+    alignItems: "flex-start",
+  },
+  popCard: {
+    backgroundColor: "#111827",
+    borderRadius: 12,
+    padding: 12,
+    opacity: 0.98,
+  },
+  popText: { fontSize: 12.5, color: "#FFFFFF", fontWeight: "600", lineHeight: 18 },
+  popCaret: {
+    marginLeft: 16,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 8,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderTopColor: "#111827",
+  },
 
   // lead sharing placeholder
   placeholderWrap: { flex: 1, padding: 16, alignItems: "center", justifyContent: "center" },
@@ -306,11 +421,19 @@ const styles = StyleSheet.create({
   },
   placeholderTitle: { fontSize: 22, fontWeight: "900", color: "#0F172A" },
   placeholderRate: { fontSize: 28, fontWeight: "900", color: "#4F46E5", marginVertical: 12 },
-  noteBox: { width: "100%", backgroundColor: "#F8FAFC", borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", padding: 14, marginTop: 8 },
+  noteBox: {
+    width: "100%",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 14,
+    marginTop: 8,
+  },
   noteTitle: { fontSize: 14, fontWeight: "800", color: "#0F172A", marginBottom: 6 },
   noteLine: { fontSize: 12, color: "#374151", fontWeight: "600", marginBottom: 4 },
 
-  // default
+  // default (no plan)
   emptyWrap: { flex: 1, padding: 16 },
   defaultCard: {
     backgroundColor: "#fff",

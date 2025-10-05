@@ -8,7 +8,7 @@ import { secureStorage } from './secureStorage';
  * Set this to your LAN IP to always use it during development.
  * Leave it empty string "" to disable the hard override.
  */
-const FORCE_DEV_IP_BASE = 'http://178.236.185.178:5003/api/';      // <- your IP (with /api)
+const FORCE_DEV_IP_BASE = 'https://api.moneysquad.in/api';      // <- your IP (with /api)
 
 const HTTPS_FALLBACK_BASE = 'https://api.moneysquad.in/api';        // <- your HTTPS fallback
 
