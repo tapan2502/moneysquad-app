@@ -7,6 +7,9 @@ interface User {
   email: string;
   fullName?: string;
   mobile?: string;
+  role?: string;
+  userRole?: string;
+  type?: string;
 }
 
 interface AuthState {
@@ -34,6 +37,12 @@ export const login = createAsyncThunk(
       const response = await apiClient.post('/auth/login', { email, password });
       console.log('✅ [AUTH] Android - Login successful:', response.data);
       const { token, user } = response.data;
+
+      const resolvedRole = (user?.role || user?.userRole || user?.type || '').toString().toLowerCase();
+      if (resolvedRole !== 'partner') {
+        console.warn('🚫 [AUTH] Android - Login blocked. Unsupported role:', resolvedRole);
+        return rejectWithValue('Please login with a partner account.');
+      }
       
       // Store token securely
       console.log('💾 [AUTH] Android - Storing token securely...');
