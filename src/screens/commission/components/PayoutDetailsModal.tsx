@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,19 +8,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { X as XIcon } from 'lucide-react-native';
-import apiClient from '@/src/utils/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '@/src/redux/store';
+import { fetchPayoutDetails, clearPayoutDetails } from '@/src/redux/slices/commissionSlice';
 import { formatCurrency } from '../utils/comissionUtils';
-
-type PayoutDetails = {
-  leadId: string;
-  disbursedAmount: number;
-  commission: number;
-  grossPayout: number;
-  tds: number;
-  netPayout: number;
-  remark: string;
-  commissionRemark: string;
-};
 
 type Props = {
   visible: boolean;
@@ -29,36 +20,21 @@ type Props = {
 };
 
 const PayoutDetailsModal: React.FC<Props> = ({ visible, onClose, leadUserId }) => {
-  const [loading, setLoading] = useState(false);
-  const [details, setDetails] = useState<PayoutDetails | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  const { payoutDetails, isPayoutDetailsLoading, payoutDetailsError } = useSelector(
+    (state: RootState) => state.commission
+  );
 
   useEffect(() => {
     if (visible && leadUserId) {
-      fetchPayoutDetails();
+      console.log('[PayoutDetailsModal] Fetching payout details for leadUserId:', leadUserId);
+      dispatch(fetchPayoutDetails(leadUserId));
     }
     return () => {
-      setDetails(null);
-      setError(null);
+      console.log('[PayoutDetailsModal] Cleaning up payout details');
+      dispatch(clearPayoutDetails());
     };
-  }, [visible, leadUserId]);
-
-  const fetchPayoutDetails = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await apiClient.get(`/commission/payout-details/${leadUserId}`);
-      if (data.success && data.data) {
-        setDetails(data.data);
-      } else {
-        setError('Failed to fetch payout details');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch payout details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [visible, leadUserId, dispatch]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -71,57 +47,57 @@ const PayoutDetailsModal: React.FC<Props> = ({ visible, onClose, leadUserId }) =
             </TouchableOpacity>
           </View>
 
-          {loading ? (
+          {isPayoutDetailsLoading ? (
             <View style={styles.modalLoading}>
               <ActivityIndicator size="large" color="#4F46E5" />
               <Text style={styles.loadingText}>Loading payout details...</Text>
             </View>
-          ) : error ? (
+          ) : payoutDetailsError ? (
             <View style={styles.modalError}>
-              <Text style={styles.errorText}>{error}</Text>
+              <Text style={styles.errorText}>{payoutDetailsError}</Text>
             </View>
-          ) : details ? (
+          ) : payoutDetails ? (
             <View style={styles.modalContent}>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Lead ID</Text>
-                <Text style={styles.detailValue}>{details.leadId}</Text>
+                <Text style={styles.detailValue}>{payoutDetails.leadId}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Disbursed Amount</Text>
-                <Text style={styles.detailValue}>{formatCurrency(details.disbursedAmount)}</Text>
+                <Text style={styles.detailValue}>{formatCurrency(payoutDetails.disbursedAmount)}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Commission</Text>
-                <Text style={styles.detailValue}>{details.commission}%</Text>
+                <Text style={styles.detailValue}>{payoutDetails.commission}%</Text>
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Gross Payout</Text>
                 <Text style={[styles.detailValue, { color: '#10B981', fontWeight: '900' }]}>
-                  {formatCurrency(details.grossPayout)}
+                  {formatCurrency(payoutDetails.grossPayout)}
                 </Text>
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>TDS</Text>
                 <Text style={[styles.detailValue, { color: '#EF4444' }]}>
-                  {formatCurrency(details.tds)}
+                  {formatCurrency(payoutDetails.tds)}
                 </Text>
               </View>
               <View style={[styles.detailRow, styles.highlightRow]}>
                 <Text style={styles.detailLabelHighlight}>Net Payout</Text>
                 <Text style={styles.detailValueHighlight}>
-                  {formatCurrency(details.netPayout)}
+                  {formatCurrency(payoutDetails.netPayout)}
                 </Text>
               </View>
-              {details.remark && (
+              {payoutDetails.remark && (
                 <View style={styles.remarkBlock}>
                   <Text style={styles.remarkLabel}>Remark</Text>
-                  <Text style={styles.remarkText}>{details.remark}</Text>
+                  <Text style={styles.remarkText}>{payoutDetails.remark}</Text>
                 </View>
               )}
-              {details.commissionRemark && (
+              {payoutDetails.commissionRemark && (
                 <View style={styles.remarkBlock}>
                   <Text style={styles.remarkLabel}>Commission Remark</Text>
-                  <Text style={styles.remarkText}>{details.commissionRemark}</Text>
+                  <Text style={styles.remarkText}>{payoutDetails.commissionRemark}</Text>
                 </View>
               )}
             </View>

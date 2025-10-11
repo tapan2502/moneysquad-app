@@ -85,24 +85,41 @@ export interface MonthlyBreakdown {
   gstStatus: string;
 }
 
+export interface PayoutDetails {
+  leadId: string;
+  disbursedAmount: number;
+  commission: number;
+  grossPayout: number;
+  tds: number;
+  netPayout: number;
+  remark: string;
+  commissionRemark: string;
+}
+
 interface CommissionState {
   commissionData: CommissionData[];
   disbursedLeads: DisbursedLead[];
   monthlyBreakdown: MonthlyBreakdown[];
+  payoutDetails: PayoutDetails | null;
   isLoading: boolean;
   isPayoutLoading: boolean;
   isBreakdownLoading: boolean;
+  isPayoutDetailsLoading: boolean;
   error: string | null;
+  payoutDetailsError: string | null;
 }
 
 const initialState: CommissionState = {
   commissionData: [],
   disbursedLeads: [],
   monthlyBreakdown: [],
+  payoutDetails: null,
   isLoading: false,
   isPayoutLoading: false,
   isBreakdownLoading: false,
+  isPayoutDetailsLoading: false,
   error: null,
+  payoutDetailsError: null,
 };
 
 // Async thunks
@@ -142,12 +159,39 @@ export const fetchMonthlyBreakdown = createAsyncThunk(
   }
 );
 
+export const fetchPayoutDetails = createAsyncThunk(
+  'commission/fetchPayoutDetails',
+  async (leadUserId: string, { rejectWithValue }) => {
+    try {
+      console.log('[Commission Slice] Fetching payout details for leadUserId:', leadUserId);
+      const response = await apiClient.get(`/commission/payout-details/${leadUserId}`);
+      console.log('[Commission Slice] Payout details response:', response.data);
+
+      if (response.data.success && response.data.data) {
+        console.log('[Commission Slice] Payout details fetched successfully:', response.data.data);
+        return response.data.data;
+      } else {
+        console.error('[Commission Slice] Invalid response format:', response.data);
+        return rejectWithValue('Invalid response format');
+      }
+    } catch (error: any) {
+      console.error('[Commission Slice] Error fetching payout details:', error);
+      console.error('[Commission Slice] Error response:', error.response?.data);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch payout details');
+    }
+  }
+);
+
 const commissionSlice = createSlice({
   name: 'commission',
   initialState,
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    clearPayoutDetails: (state) => {
+      state.payoutDetails = null;
+      state.payoutDetailsError = null;
     },
   },
   extraReducers: (builder) => {
@@ -190,9 +234,25 @@ const commissionSlice = createSlice({
       .addCase(fetchMonthlyBreakdown.rejected, (state, action) => {
         state.isBreakdownLoading = false;
         state.error = action.payload as string;
+      })
+      // Fetch Payout Details
+      .addCase(fetchPayoutDetails.pending, (state) => {
+        state.isPayoutDetailsLoading = true;
+        state.payoutDetailsError = null;
+        console.log('[Commission Slice Reducer] Payout details request started');
+      })
+      .addCase(fetchPayoutDetails.fulfilled, (state, action) => {
+        state.isPayoutDetailsLoading = false;
+        state.payoutDetails = action.payload;
+        console.log('[Commission Slice Reducer] Payout details loaded successfully:', action.payload);
+      })
+      .addCase(fetchPayoutDetails.rejected, (state, action) => {
+        state.isPayoutDetailsLoading = false;
+        state.payoutDetailsError = action.payload as string;
+        console.error('[Commission Slice Reducer] Payout details request failed:', action.payload);
       });
   },
 });
 
-export const { clearError } = commissionSlice.actions;
+export const { clearError, clearPayoutDetails } = commissionSlice.actions;
 export default commissionSlice.reducer;
