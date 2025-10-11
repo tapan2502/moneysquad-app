@@ -49,11 +49,10 @@ interface LeadFormData {
 }
 
 const applicantProfileOptions = [
-  { label: 'Salaried', value: 'Salaried' },
-  { label: 'Self Employed', value: 'Self Employed' },
-  { label: 'Business Owner', value: 'Business Owner' },
-  { label: 'Professional', value: 'Professional' },
-  { label: 'Other', value: 'Other' },
+  { label: 'Salaried Individual', value: 'Salaried Individual' },
+  { label: 'Business (SENP)', value: 'Business (SENP)' },
+  { label: 'Professional (SEP - Dr/CA/CS/Architect)', value: 'Professional (SEP - Dr/CA/CS/Architect)' },
+  { label: 'Others', value: 'Others' },
 ];
 
 const CreateLeadScreen: React.FC = () => {
@@ -144,10 +143,8 @@ const CreateLeadScreen: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [watchPincode, setValue]);
 
-  const isSalaried = (() => {
-    const v = (watch('applicantProfile') || '').toLowerCase();
-    return v.includes('salaried');
-  })();
+  const applicantProfile = watch('applicantProfile') || '';
+  const isSalariedIndividual = applicantProfile === 'Salaried Individual';
 
   const loanTypeOptions = loanTypes.map((t) => ({
     label: t.name.replace(/_/g, ' '),
@@ -172,7 +169,7 @@ const CreateLeadScreen: React.FC = () => {
             loantType: data.loantType,
             loanAmount: data.loanAmount,
             comments: data.comments || '',
-            businessName: isSalaried ? '' : (data.businessName || ''),
+            businessName: isSalariedIndividual ? '' : (data.businessName || ''),
             city: data.city,
             state: data.state,
             // not on form — pass sensible defaults:
@@ -198,7 +195,7 @@ const CreateLeadScreen: React.FC = () => {
             loantType: data.loantType,
             loanAmount: data.loanAmount,
             comments: data.comments || '',
-            businessName: isSalaried ? '' : (data.businessName || ''),
+            businessName: isSalariedIndividual ? '' : (data.businessName || ''),
             city: data.city,
             state: data.state,
             // not in UI — backend still expects keys:
@@ -242,64 +239,89 @@ const CreateLeadScreen: React.FC = () => {
         {/* Form */}
         <View style={styles.formContainer}>
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {/* Applicant */}
+            {/* Required Fields Note */}
+            <View style={styles.requiredNote}>
+              <Text style={styles.requiredNoteText}>
+                Fields marked with <Text style={styles.asterisk}>*</Text> are required. The "Submit" button will only be enabled once all required fields are valid.
+              </Text>
+            </View>
+
+            {/* Applicant Details */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Applicant Information</Text>
-
-              <CustomTextInput
-                name="applicantName"
-                control={control}
-                label="Full Name"
-                placeholder="Enter applicant's full name"
-                autoCapitalize="words"
-                error={errors.applicantName}
-                style={styles.input}
-              />
-
-              <CustomDropdown
-                label="Applicant Profile"
-                value={watch('applicantProfile')}
-                options={applicantProfileOptions}
-                onSelect={(v) => setValue('applicantProfile', v)}
-                placeholder="Select applicant profile"
-                error={errors.applicantProfile?.message}
-                required
-              />
+              <Text style={styles.sectionTitle}>Applicant Details</Text>
 
               <View style={styles.row}>
                 <View style={styles.halfWidth}>
+                  <CustomDropdown
+                    label="Applicant Profile"
+                    value={watch('applicantProfile')}
+                    options={applicantProfileOptions}
+                    onSelect={(v) => setValue('applicantProfile', v)}
+                    placeholder="Select applicant profile"
+                    error={errors.applicantProfile?.message}
+                    required
+                  />
+                </View>
+
+                <View style={styles.halfWidth}>
+                  <CustomTextInput
+                    name="applicantName"
+                    control={control}
+                    label="Applicant Name"
+                    placeholder="Enter applicant name"
+                    autoCapitalize="words"
+                    error={errors.applicantName}
+                    style={styles.input}
+                    required
+                  />
+                </View>
+              </View>
+
+              <View style={styles.row}>
+                {!isSalariedIndividual && (
+                  <View style={styles.halfWidth}>
+                    <CustomTextInput
+                      name="businessName"
+                      control={control}
+                      label="Business Name"
+                      placeholder="Enter business name"
+                      autoCapitalize="words"
+                      error={errors.businessName}
+                      style={styles.input}
+                    />
+                  </View>
+                )}
+
+                <View style={isSalariedIndividual ? styles.fullWidth : styles.halfWidth}>
                   <CustomTextInput
                     name="mobile"
                     control={control}
-                    label="Mobile Number"
+                    label="Applicant Mobile"
                     placeholder="Enter mobile number"
                     keyboardType="phone-pad"
                     maxLength={10}
                     error={errors.mobile}
                     style={styles.input}
+                    required
                   />
                 </View>
+              </View>
 
+              <View style={styles.row}>
                 <View style={styles.halfWidth}>
                   <CustomTextInput
                     name="email"
                     control={control}
-                    label="Email Address"
+                    label="Applicant Email"
                     placeholder="Enter email address"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     error={errors.email}
                     style={styles.input}
+                    required
                   />
                 </View>
-              </View>
-            </View>
 
-            {/* Location */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Location Information</Text>
-
-              <View style={styles.row}>
                 <View style={styles.halfWidth}>
                   <CustomTextInput
                     name="pincode"
@@ -310,9 +332,12 @@ const CreateLeadScreen: React.FC = () => {
                     maxLength={6}
                     error={errors.pincode}
                     style={styles.input}
+                    required
                   />
                 </View>
+              </View>
 
+              <View style={styles.row}>
                 <View style={styles.halfWidth}>
                   <CustomTextInput
                     name="city"
@@ -325,66 +350,59 @@ const CreateLeadScreen: React.FC = () => {
                     editable={false}
                   />
                 </View>
+
+                <View style={styles.halfWidth}>
+                  <CustomTextInput
+                    name="state"
+                    control={control}
+                    label="State"
+                    placeholder="Auto-filled from pincode"
+                    autoCapitalize="words"
+                    error={errors.state}
+                    style={styles.input}
+                    editable={false}
+                  />
+                </View>
               </View>
-
-              <CustomTextInput
-                name="state"
-                control={control}
-                label="State"
-                placeholder="Auto-filled from pincode"
-                autoCapitalize="words"
-                error={errors.state}
-                style={styles.input}
-                editable={false}
-              />
             </View>
 
-            {/* Loan */}
+            {/* Loan Details */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Loan Information</Text>
+              <Text style={styles.sectionTitle}>Loan Details</Text>
 
-              <CustomDropdown
-                label="Loan Type"
-                value={watch('loantType')}
-                options={loanTypeOptions}
-                onSelect={(v) => setValue('loantType', v)}
-                placeholder="Select loan type"
-                error={errors.loantType?.message}
-                required
-              />
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <CustomDropdown
+                    label="Loan Type"
+                    value={watch('loantType')}
+                    options={loanTypeOptions}
+                    onSelect={(v) => setValue('loantType', v)}
+                    placeholder="Select loan type"
+                    error={errors.loantType?.message}
+                    required
+                  />
+                </View>
 
-              <CustomTextInput
-                name="loanAmount"
-                control={control}
-                label="Loan Amount"
-                placeholder="Enter loan amount"
-                keyboardType="numeric"
-                error={errors.loanAmount}
-                style={styles.input}
-              />
-            </View>
-
-            {/* Additional */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Additional Information</Text>
-
-              {!isSalaried && (
-                <CustomTextInput
-                  name="businessName"
-                  control={control}
-                  label="Business Name"
-                  placeholder="Enter business name"
-                  autoCapitalize="words"
-                  error={errors.businessName}
-                  style={styles.input}
-                />
-              )}
+                <View style={styles.halfWidth}>
+                  <CustomTextInput
+                    name="loanAmount"
+                    control={control}
+                    label="Loan Amount"
+                    placeholder="Enter loan amount"
+                    keyboardType="numeric"
+                    error={errors.loanAmount}
+                    style={styles.input}
+                    required
+                  />
+                  <Text style={styles.helperText}>₹50,000 - ₹1,00,00,000</Text>
+                </View>
+              </View>
 
               <CustomTextInput
                 name="comments"
                 control={control}
-                label="Comments (Optional)"
-                placeholder="Enter any additional comments"
+                label="Comments"
+                placeholder="Enter any additional comments (optional)"
                 multiline
                 numberOfLines={4}
                 error={errors.comments}
@@ -443,6 +461,32 @@ const styles = StyleSheet.create({
   input: { marginBottom: 14 },
   row: { flexDirection: 'row', gap: 12 },
   halfWidth: { flex: 1 },
+  fullWidth: { flex: 1 },
+  helperText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: -10,
+    marginBottom: 14,
+    fontWeight: '600',
+  },
+  requiredNote: {
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#EF4444',
+    marginBottom: 20,
+  },
+  requiredNoteText: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  asterisk: {
+    color: '#EF4444',
+    fontWeight: '900',
+  },
   buttonContainer: { flexDirection: 'row', gap: 12, marginTop: 12 },
   cancelButton: { flex: 1 },
   submitButton: { flex: 2 },

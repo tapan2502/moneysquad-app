@@ -9,6 +9,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
   label: string;
   error?: FieldError;
   style?: ViewStyle;
+  required?: boolean;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({
@@ -17,6 +18,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
   label,
   error,
   style,
+  required = false,
   ...props
 }) => {
   return (
@@ -25,7 +27,10 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
       control={control}
       render={({ field: { onChange, value } }) => (
         <View style={[styles.container, style]}>
-          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.label}>
+            {label}
+            {required && <Text style={styles.asterisk}> *</Text>}
+          </Text>
           <TextInput
             {...props}
             value={value}
@@ -73,6 +78,10 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 14,
     marginTop: 4,
+  },
+  asterisk: {
+    color: '#EF4444',
+    fontWeight: '900',
   },
 });
 
