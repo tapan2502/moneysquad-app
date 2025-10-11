@@ -1,9 +1,10 @@
 import React, { memo, useMemo, useState } from "react"
-import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native"
-import { Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from "lucide-react-native"
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Modal, ActivityIndicator } from "react-native"
+import { Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Eye, X as XIcon } from "lucide-react-native"
 import { formatCurrency, formatDate, getStatusColor, getCurrentMonthKey, getMonthKey, formatMonthLabel, sortMonthKeysDesc } from "../utils/comissionUtils"
 import { DisbursedLead } from "@/src/redux/slices/commissionSlice"
 import CustomDropdown from "@/src/components/CustomDropdown"
+import PayoutDetailsModal from "./PayoutDetailsModal"
 
 type Props = {
   data: DisbursedLead[]
@@ -25,7 +26,7 @@ const getStatusIcon = (status?: string) => {
 }
 
 // UPI-like compact row: left (title/subtitle), right (amounts/status)
-const Row = ({ item }: { item: DisbursedLead }) => {
+const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (leadUserId: string) => void }) => {
   const StatusIcon = getStatusIcon(item.payoutStatus)
   const statusColor = getStatusColor(item.payoutStatus)
 
@@ -52,6 +53,14 @@ const Row = ({ item }: { item: DisbursedLead }) => {
           Loan: {formatCurrency(item.disbursedAmount)} • Comm {item.commission}%
         </Text>
       </View>
+
+      <TouchableOpacity
+        style={styles.eyeBtn}
+        onPress={() => onViewDetails(item.leadUserId)}
+        activeOpacity={0.7}
+      >
+        <Eye size={18} color="#4F46E5" strokeWidth={2} />
+      </TouchableOpacity>
     </View>
   )
 }
@@ -65,6 +74,18 @@ const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
   const [selectedLender, setSelectedLender] = useState<string>("")
   const [selectedStatus, setSelectedStatus] = useState<string>("")
   const [selectedAssociate, setSelectedAssociate] = useState<string>("")
+  const [payoutModalVisible, setPayoutModalVisible] = useState(false)
+  const [selectedLeadUserId, setSelectedLeadUserId] = useState<string>("")
+
+  const handleViewDetails = (leadUserId: string) => {
+    setSelectedLeadUserId(leadUserId)
+    setPayoutModalVisible(true)
+  }
+
+  const handleCloseModal = () => {
+    setPayoutModalVisible(false)
+    setSelectedLeadUserId("")
+  }
 
   const monthOptions = useMemo(() => {
     const months = new Set<string>()
@@ -207,7 +228,7 @@ const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
       <FlatList
         data={filteredData}
         keyExtractor={(it) => it._id}
-        renderItem={({ item }) => <Row item={item} />}
+        renderItem={({ item }) => <Row item={item} onViewDetails={handleViewDetails} />}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} colors={["#4F46E5"]} />}
@@ -217,6 +238,12 @@ const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
             <Text style={styles.emptySub}>Disbursed leads will appear here</Text>
           </View>
         }
+      />
+
+      <PayoutDetailsModal
+        visible={payoutModalVisible}
+        onClose={handleCloseModal}
+        leadUserId={selectedLeadUserId}
       />
     </View>
   )
@@ -297,6 +324,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   badgeText: { fontSize: 10, fontWeight: "800" },
+  eyeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#EEF2FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
   empty: { alignItems: "center", paddingVertical: 48 },
   emptyTitle: { fontSize: 16, fontWeight: "800", color: "#374151" },
   emptySub: { fontSize: 12, color: "#6B7280", marginTop: 4 },

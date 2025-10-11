@@ -19,7 +19,7 @@ import LoadingButton from '../../components/LoadingButton';
 import { Snackbar } from 'react-native-paper';
 import { ArrowLeft, Plus, CreditCard as Edit3 } from 'lucide-react-native';
 
-// Validation (only fields from the UI)
+// Validation schema - all fields mandatory except comments and businessName
 const leadSchema = yup.object({
   applicantName: yup.string().required('Applicant name is required').min(2, 'Name must be at least 2 characters'),
   applicantProfile: yup.string().required('Applicant profile is required'),
@@ -30,7 +30,11 @@ const leadSchema = yup.object({
   loanAmount: yup.string().required('Loan amount is required').matches(/^[0-9]+$/, 'Enter a valid amount'),
   city: yup.string().required('City is required'),
   state: yup.string().required('State is required'),
-  businessName: yup.string().optional(),
+  businessName: yup.string().when('applicantProfile', {
+    is: (val: string) => val !== 'Salaried Individual',
+    then: (schema) => schema.required('Business name is required'),
+    otherwise: (schema) => schema.optional(),
+  }),
   comments: yup.string().optional(),
 });
 
@@ -288,6 +292,7 @@ const CreateLeadScreen: React.FC = () => {
                       autoCapitalize="words"
                       error={errors.businessName}
                       style={styles.input}
+                      required
                     />
                   </View>
                 )}
