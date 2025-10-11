@@ -140,6 +140,8 @@ export const fetchDisbursedLeads = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await apiClient.get('/commission/get-payout');
+      console.log('[Commission Slice] Disbursed leads API response sample:', JSON.stringify(response.data.data?.[0], null, 2));
+      console.log('[Commission Slice] First lead IDs - _id:', response.data.data?.[0]?._id, 'leadId:', response.data.data?.[0]?.leadId, 'lead_Id:', response.data.data?.[0]?.lead_Id);
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch disbursed leads');
