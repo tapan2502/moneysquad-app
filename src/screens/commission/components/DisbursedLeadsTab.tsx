@@ -31,13 +31,13 @@ const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (lea
   const statusColor = getStatusColor(item.payoutStatus)
 
   const handlePress = () => {
-    const leadUserId = item.disbursedId?.leadUserId || item.lead_Id || item.leadId;
+    const leadUserId = item.leadId || item.lead_Id || item.disbursedId?.leadUserId;
     console.log('[DisbursedLeadsTab Row] Eye icon pressed');
     console.log('[DisbursedLeadsTab Row] Item data:', JSON.stringify(item, null, 2));
-    console.log('[DisbursedLeadsTab Row] Extracted leadUserId:', leadUserId);
-    console.log('[DisbursedLeadsTab Row] disbursedId:', item.disbursedId);
+    console.log('[DisbursedLeadsTab Row] Extracted leadUserId (should be ML format):', leadUserId);
+    console.log('[DisbursedLeadsTab Row] leadId (ML format):', item.leadId);
     console.log('[DisbursedLeadsTab Row] lead_Id:', item.lead_Id);
-    console.log('[DisbursedLeadsTab Row] leadId:', item.leadId);
+    console.log('[DisbursedLeadsTab Row] disbursedId.leadUserId:', item.disbursedId?.leadUserId);
     onViewDetails(leadUserId);
   };
 
