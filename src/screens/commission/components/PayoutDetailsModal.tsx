@@ -25,16 +25,25 @@ const PayoutDetailsModal: React.FC<Props> = ({ visible, onClose, leadUserId }) =
     (state: RootState) => state.commission
   );
 
+  console.log('[PayoutDetailsModal] Render - visible:', visible, 'leadUserId:', leadUserId);
+  console.log('[PayoutDetailsModal] Redux state - loading:', isPayoutDetailsLoading, 'error:', payoutDetailsError, 'data:', payoutDetails);
+
   useEffect(() => {
+    console.log('[PayoutDetailsModal] Effect triggered - visible:', visible, 'leadUserId:', leadUserId);
     if (visible && leadUserId) {
-      console.log('[PayoutDetailsModal] Fetching payout details for leadUserId:', leadUserId);
+      console.log('[PayoutDetailsModal] Dispatching fetchPayoutDetails for leadUserId:', leadUserId);
       dispatch(fetchPayoutDetails(leadUserId));
     }
-    return () => {
-      console.log('[PayoutDetailsModal] Cleaning up payout details');
-      dispatch(clearPayoutDetails());
-    };
   }, [visible, leadUserId, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      if (!visible) {
+        console.log('[PayoutDetailsModal] Modal closed - cleaning up payout details');
+        dispatch(clearPayoutDetails());
+      }
+    };
+  }, [visible, dispatch]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

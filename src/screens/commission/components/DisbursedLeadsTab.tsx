@@ -56,7 +56,7 @@ const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (lea
 
       <TouchableOpacity
         style={styles.eyeBtn}
-        onPress={() => onViewDetails(item.leadUserId)}
+        onPress={() => onViewDetails(item.disbursedId?.leadUserId || item.lead_Id)}
         activeOpacity={0.7}
       >
         <Eye size={18} color="#4F46E5" strokeWidth={2} />
