@@ -175,6 +175,27 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="support"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="product-info"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   )
 }
