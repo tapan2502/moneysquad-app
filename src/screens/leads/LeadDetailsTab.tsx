@@ -1,6 +1,7 @@
 // src/screens/leads/tabs/LeadDetailsTab.tsx
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated, TouchableOpacity } from 'react-native';
+import { openPhoneDialer, openEmailClient } from '@/src/utils/linking';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   MapPin, Phone, Mail, Building2, DollarSign, Calendar,
@@ -59,6 +60,14 @@ const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
   const state = lead?.pincode?.state || '—';
   const location = `${city}, ${state}`;
   const type = (lead?.loan?.type || '—').replace(/_/g, ' ');
+
+  const handlePhonePress = (phone?: string) => {
+    openPhoneDialer(phone);
+  };
+
+  const handleEmailPress = (email?: string) => {
+    openEmailClient(email);
+  };
 
   return (
     <ScrollView
@@ -159,9 +168,21 @@ const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
         <Card title="Manager Details">
           <KV icon={<User size={16} color="#64748B" />} label="Name" value={`${lead.manager.firstName} ${lead.manager.lastName}`} />
           <Divider />
-          <KV icon={<PhoneCall size={16} color="#64748B" />} label="Mobile" value={lead.manager.mobile || '—'} />
+          <ClickableKV
+            icon={<PhoneCall size={16} color="#64748B" />}
+            label="Mobile"
+            value={lead.manager.mobile || '—'}
+            onPress={() => handlePhonePress(lead.manager?.mobile)}
+            disabled={!lead.manager.mobile}
+          />
           <Divider />
-          <KV icon={<MailIcon size={16} color="#64748B" />} label="Email" value={lead.manager.email || '—'} />
+          <ClickableKV
+            icon={<MailIcon size={16} color="#64748B" />}
+            label="Email"
+            value={lead.manager.email || '—'}
+            onPress={() => handleEmailPress(lead.manager?.email)}
+            disabled={!lead.manager.email}
+          />
           {lead.manager.managerId && (
             <>
               <Divider />
@@ -277,6 +298,32 @@ const KV: React.FC<{ icon: React.ReactNode; label: string; value: string; multil
   </View>
 );
 
+const ClickableKV: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onPress: () => void;
+  disabled?: boolean;
+}> = ({ icon, label, value, onPress, disabled }) => (
+  <TouchableOpacity
+    style={styles.kvRow}
+    onPress={onPress}
+    disabled={disabled}
+    activeOpacity={0.7}
+  >
+    <View style={styles.kvLeft}>
+      {icon}
+      <Text style={styles.kvLabel}>{label}</Text>
+    </View>
+    <Text
+      style={[styles.kvValue, styles.clickableValue, disabled && styles.disabledValue]}
+      numberOfLines={1}
+    >
+      {value}
+    </Text>
+  </TouchableOpacity>
+);
+
 const Divider = () => <View style={styles.divider} />;
 
 const SmallCard: React.FC<{ icon: React.ReactNode; title: string; name: string; id?: string }> = ({ icon, title, name, id }) => (
@@ -370,6 +417,14 @@ const styles = StyleSheet.create({
   kvLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 110 },
   kvLabel: { fontSize: 12, color: '#6B7280', fontWeight: '800' },
   kvValue: { flex: 1, fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  clickableValue: {
+    color: '#4F46E5',
+    textDecorationLine: 'underline',
+  },
+  disabledValue: {
+    color: '#94A3B8',
+    textDecorationLine: 'none',
+  },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E6EAF2' },
 
   // ASSIGNMENT

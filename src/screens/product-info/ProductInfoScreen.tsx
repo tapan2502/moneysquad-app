@@ -11,7 +11,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  Alert,
 } from "react-native"
+import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useDispatch, useSelector } from "react-redux"
 import { LinearGradient } from "expo-linear-gradient"
@@ -27,6 +29,7 @@ import {
   Calendar,
   CheckCircle,
   AlertCircle,
+  Copy,
 } from "lucide-react-native"
 
 type TabKey = "guides" | "eligibility" | "documents"
@@ -43,6 +46,15 @@ const ProductInfoScreen: React.FC = () => {
 
   const handleRefresh = () => dispatch(fetchProductInfo() as any)
   const handleDismissError = () => dispatch(clearError())
+
+  const handleCopy = async (text: string, label: string) => {
+    try {
+      await Clipboard.setStringAsync(text)
+      Alert.alert('Copied!', `${label} copied to clipboard`)
+    } catch (error) {
+      Alert.alert('Error', 'Failed to copy to clipboard')
+    }
+  }
 
   // ---------- Styling helpers for loan types ----------
   const typeColor: Record<string, string> = {
@@ -99,12 +111,24 @@ const ProductInfoScreen: React.FC = () => {
           {guides.map((g: any, idx: number) => (
             <View key={g._id || idx} style={styles.card}>
               <View style={[styles.cardHeader, { backgroundColor: getTypeBg(g.type) }]}>
-                <View style={[styles.cardIconWrap, { backgroundColor: getTypeBg(g.type), borderColor: `${getLoanTypeColor(g.type)}22` }]}>
-                  <CreditCard size={16} color={getLoanTypeColor(g.type)} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <View style={[styles.cardIconWrap, { backgroundColor: getTypeBg(g.type), borderColor: `${getLoanTypeColor(g.type)}22` }]}>
+                    <CreditCard size={16} color={getLoanTypeColor(g.type)} />
+                  </View>
+                  <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(g.type) }]} numberOfLines={1}>
+                    {g.type}
+                  </Text>
                 </View>
-                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(g.type) }]} numberOfLines={1}>
-                  {g.type}
-                </Text>
+                <TouchableOpacity
+                  onPress={() => handleCopy(
+                    `${g.type}\nInterest Rate: ${g.interestRate || '—'}\nProcessing Fee: ${g.processingFees || '—'}\nLoan Amount: ${g.loanAmount || '—'}\nTenure: ${g.tenure || '—'}`,
+                    g.type
+                  )}
+                  style={styles.copyBtn}
+                  activeOpacity={0.7}
+                >
+                  <Copy size={16} color={getLoanTypeColor(g.type)} />
+                </TouchableOpacity>
               </View>
 
               <View style={styles.cardBodyPad}>
@@ -144,12 +168,24 @@ const ProductInfoScreen: React.FC = () => {
           Object.entries(eligCriteria).map(([type, list]: any) => (
             <View key={type} style={styles.card}>
               <View style={[styles.cardHeader, { backgroundColor: getTypeBg(type) }]}>
-                <View style={[styles.cardIconWrap, { backgroundColor: getTypeBg(type), borderColor: `${getLoanTypeColor(type)}22` }]}>
-                  <CheckCircle size={16} color={getLoanTypeColor(type)} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <View style={[styles.cardIconWrap, { backgroundColor: getTypeBg(type), borderColor: `${getLoanTypeColor(type)}22` }]}>
+                    <CheckCircle size={16} color={getLoanTypeColor(type)} />
+                  </View>
+                  <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]} numberOfLines={1}>
+                    {type}
+                  </Text>
                 </View>
-                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]} numberOfLines={1}>
-                  {type}
-                </Text>
+                <TouchableOpacity
+                  onPress={() => handleCopy(
+                    `${type}\n${list.join('\n')}`,
+                    'Eligibility Criteria'
+                  )}
+                  style={styles.copyBtn}
+                  activeOpacity={0.7}
+                >
+                  <Copy size={16} color={getLoanTypeColor(type)} />
+                </TouchableOpacity>
               </View>
 
               <View style={styles.cardBodyPad}>
@@ -174,9 +210,19 @@ const ProductInfoScreen: React.FC = () => {
           Object.entries(eligCalc).map(([type, items]: any) => (
             <View key={type} style={styles.card}>
               <View style={[styles.cardHeader, { backgroundColor: getTypeBg(type) }]}>
-                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type) }]} numberOfLines={1}>
+                <Text style={[styles.cardHeaderText, { color: getLoanTypeColor(type), flex: 1 }]} numberOfLines={1}>
                   {type}
                 </Text>
+                <TouchableOpacity
+                  onPress={() => handleCopy(
+                    `${type}\n${items.join('\n')}`,
+                    'Calculation Method'
+                  )}
+                  style={styles.copyBtn}
+                  activeOpacity={0.7}
+                >
+                  <Copy size={16} color={getLoanTypeColor(type)} />
+                </TouchableOpacity>
               </View>
 
               <View style={styles.cardBodyPad}>
@@ -206,13 +252,31 @@ const ProductInfoScreen: React.FC = () => {
       {Object.keys(documents).length === 0 ? (
         <EmptyState label="No documents listed yet" />
       ) : (
-        Object.entries(documents).map(([category, docData]: any) => (
+        Object.entries(documents).map(([category, docData]: any) => {
+          const getAllDocs = () => {
+            let text = `${category}\n\n`;
+            Object.entries(docData?.subcategories ?? {}).forEach(([sub, docs]: any) => {
+              text += `${sub}:\n${docs.join('\n')}\n\n`;
+            });
+            return text;
+          };
+
+          return (
           <View key={category} style={styles.docCategory}>
             <View style={styles.docHeader}>
-              <View style={styles.docIcon}>
-                <FileText size={16} color="#4F46E5" />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={styles.docIcon}>
+                  <FileText size={16} color="#4F46E5" />
+                </View>
+                <Text style={styles.docTitle} numberOfLines={1}>{category}</Text>
               </View>
-              <Text style={styles.docTitle} numberOfLines={1}>{category}</Text>
+              <TouchableOpacity
+                onPress={() => handleCopy(getAllDocs(), category)}
+                style={styles.copyBtn}
+                activeOpacity={0.7}
+              >
+                <Copy size={16} color="#4F46E5" />
+              </TouchableOpacity>
             </View>
 
             {Object.entries(docData?.subcategories ?? {}).map(([sub, docs]: any) => (
@@ -229,7 +293,7 @@ const ProductInfoScreen: React.FC = () => {
               </View>
             ))}
           </View>
-        ))
+        )})
       )}
     </ScrollView>
   )
@@ -237,7 +301,7 @@ const ProductInfoScreen: React.FC = () => {
   // ---------- Loading Gate ----------
   if (productInfoLoading && !productInfo) {
     return (
-      <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: "#0B1020" }}>
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#0B1020" }}>
         <LinearGradient colors={["#0B1220", "#111827"]} style={styles.hero}>
           <View style={styles.heroRow}>
             <View style={styles.heroIcon}>
@@ -258,7 +322,7 @@ const ProductInfoScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
+    <SafeAreaView edges={["top"]} style={styles.safe}>
       <View style={styles.container}>
         {/* Premium hero header */}
         <LinearGradient
@@ -519,6 +583,13 @@ const styles = StyleSheet.create({
 
   // Centered container
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+
+  // Copy button
+  copyBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
 })
 
 export default ProductInfoScreen

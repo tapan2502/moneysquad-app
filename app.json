@@ -17,7 +17,20 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "tel"
+            },
+            {
+              "scheme": "mailto"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

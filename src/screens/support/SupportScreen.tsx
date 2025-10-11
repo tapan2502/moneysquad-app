@@ -9,7 +9,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Linking,
   Platform,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -17,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { Snackbar } from "react-native-paper"
 import { RootState } from "../../redux/store"
 import { fetchSupportData, clearError } from "../../redux/slices/resourceAndSupportSlice"
+import { handleContactPress } from "../../utils/linking"
 import {
   CircleHelp as HelpCircle,
   Mail,
@@ -39,28 +39,6 @@ const SupportScreen: React.FC = () => {
 
   const handleRefresh = () => dispatch(fetchSupportData() as any)
   const handleDismissError = () => dispatch(clearError())
-
-  // --- Safe deep-link openers with fallbacks ---
-  const openURLSafe = async (url: string) => {
-    try {
-      const can = await Linking.canOpenURL(url)
-      if (can) await Linking.openURL(url)
-    } catch {
-      // no-op
-    }
-  }
-
-  const handleContactPress = (type: "email" | "phone" | "whatsapp", contact?: string) => {
-    if (!contact) return
-    if (type === "email") return openURLSafe(`mailto:${contact}`)
-    if (type === "phone") return openURLSafe(`tel:${contact}`)
-    if (type === "whatsapp") {
-      const number = contact.replace(/\s+/g, "")
-      // try native scheme, then https
-      openURLSafe(`whatsapp://send?phone=${number}`)
-      setTimeout(() => openURLSafe(`https://wa.me/${number}`), 200)
-    }
-  }
 
   const hasLeadEmails = useMemo(() => {
     const obj = supportData?.leadEmails || {}
