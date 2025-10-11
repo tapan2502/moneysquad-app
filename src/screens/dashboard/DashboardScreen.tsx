@@ -17,7 +17,6 @@ import TrendsSection from './components/TrendsSection';
 import MatrixSection from './components/MatrixSection';
 import FunnelSection from './components/FunnelSection';
 import RejectionReasonsSection from './components/RejectionReasonsSection';
-import ReferEarnBanner from './components/ReferEarnBanner';
 import { Snackbar } from 'react-native-paper';
 import Sidebar from '../../components/sidebar/Sidebar';
 
@@ -110,7 +109,6 @@ const DashboardScreen: React.FC = () => {
           />
         }
       >
-        <ReferEarnBanner />
         <FilterSection />
         <SnapshotSection 
           snapshot={snapshot} 
