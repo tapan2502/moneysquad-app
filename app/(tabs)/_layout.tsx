@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router"
 import { View, Text } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Users, Chrome as Home, Gift, BookOpen, CircleHelp as HelpCircle, DollarSign } from "lucide-react-native"
+import { Users, Chrome as Home, Gift, DollarSign } from "lucide-react-native"
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
@@ -43,8 +43,8 @@ export default function TabLayout() {
         name="leads"
         options={{
           title: "Leads",
-          tabBarIcon: ({ focused, color }) => (
-            <Users size={22} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+          tabBarIcon: ({ focused }) => (
+            <Users size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
           ),
           tabBarLabel: ({ focused }) => (
             <Text
@@ -52,7 +52,7 @@ export default function TabLayout() {
                 fontSize: 11,
                 fontWeight: "600",
                 color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 6,
+                marginTop: 4,
                 letterSpacing: 0.2,
               }}
             >
@@ -65,20 +65,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="commission"
         options={{
-          title: "Commission",
-          tabBarIcon: ({ size, color, focused }) => (
-            <DollarSign size={22} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+          title: "Earnings",
+          tabBarIcon: ({ focused }) => (
+            <DollarSign size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
           ),
           tabBarLabel: ({ focused }) => (
             <Text
               style={{
-                fontSize: 10, // Reduced font size to prevent text wrapping
+                fontSize: 11,
                 fontWeight: "600",
                 color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 6,
-                letterSpacing: 0.1, // Reduced letter spacing for better fit
-                textAlign: "center",
-                numberOfLines: 1, // Ensure single line text
+                marginTop: 4,
+                letterSpacing: 0.2,
               }}
             >
               Earnings
@@ -88,55 +86,32 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="offers"
-        options={{
-          title: "Offers",
-          tabBarIcon: ({ size, color, focused }) => (
-            <Gift size={22} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
-          ),
-          tabBarLabel: ({ focused }) => (
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 6,
-                letterSpacing: 0.2,
-              }}
-            >
-              Offers
-            </Text>
-          ),
-        }}
-      />
-
-      <Tabs.Screen
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ size, color, focused }) => (
+          tabBarIcon: ({ focused }) => (
             <View
               style={{
-                width: 60,
-                height: 60,
-                borderRadius: 30,
-                backgroundColor: focused ? "#00B9AE" : "#333333",
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: focused ? "#00B9AE" : "#1A1A1A",
                 justifyContent: "center",
                 alignItems: "center",
-                marginTop: -24 - bottomInset * 0.2,
-                shadowColor: focused ? "#00B9AE" : "transparent",
+                marginTop: -28 - bottomInset * 0.2,
+                shadowColor: focused ? "#00B9AE" : "#000",
                 shadowOffset: {
                   width: 0,
-                  height: 6,
+                  height: 8,
                 },
-                shadowOpacity: 0.25,
-                shadowRadius: 12,
-                elevation: 8,
-                borderWidth: focused ? 0 : 1,
-                borderColor: "#555555",
+                shadowOpacity: focused ? 0.4 : 0.3,
+                shadowRadius: 16,
+                elevation: 12,
+                borderWidth: 3,
+                borderColor: "#000000",
               }}
             >
-              <Home size={24} color={focused ? "#FFFFFF" : "#FFFFFF"} strokeWidth={2.2} />
+              <Home size={26} color="#FFFFFF" strokeWidth={2.2} />
             </View>
           ),
           tabBarLabel: ({ focused }) => (
@@ -145,7 +120,7 @@ export default function TabLayout() {
                 fontSize: 11,
                 fontWeight: "600",
                 color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 6,
+                marginTop: 4,
                 letterSpacing: 0.2,
               }}
             >
@@ -156,11 +131,11 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="team"
+        name="offers"
         options={{
-          title: "Team",
-          tabBarIcon: ({ size, color, focused }) => (
-            <Users size={22} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+          title: "Offers",
+          tabBarIcon: ({ focused }) => (
+            <Gift size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
           ),
           tabBarLabel: ({ focused }) => (
             <Text
@@ -168,11 +143,34 @@ export default function TabLayout() {
                 fontSize: 11,
                 fontWeight: "600",
                 color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 6,
+                marginTop: 4,
                 letterSpacing: 0.2,
               }}
             >
-              Team
+              Offers
+            </Text>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="team"
+        options={{
+          title: "My Team",
+          tabBarIcon: ({ focused }) => (
+            <Users size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: focused ? "#00B9AE" : "#FFFFFF",
+                marginTop: 4,
+                letterSpacing: 0.2,
+              }}
+            >
+              My Team
             </Text>
           ),
         }}
@@ -181,46 +179,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="product-info"
         options={{
-          title: "Product", // Shortened from "Product Info" to prevent text wrapping
-          tabBarIcon: ({ size, color, focused }) => (
-            <BookOpen size={22} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
-          ),
-          tabBarLabel: ({ focused }) => (
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 6,
-                letterSpacing: 0.2,
-              }}
-            >
-              Product {/* Shortened label to prevent two-line text */}
-            </Text>
-          ),
+          href: null,
         }}
       />
 
       <Tabs.Screen
         name="support"
         options={{
-          title: "Support",
-          tabBarIcon: ({ size, color, focused }) => (
-            <HelpCircle size={22} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
-          ),
-          tabBarLabel: ({ focused }) => (
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 6,
-                letterSpacing: 0.2,
-              }}
-            >
-              Support
-            </Text>
-          ),
+          href: null,
         }}
       />
     </Tabs>
