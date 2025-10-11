@@ -20,7 +20,7 @@ import {
   HelpCircle,
   Package
 } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import type { RootState } from "../../redux/store";
 import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice";
 import { logout } from "../../redux/slices/authSlice";
@@ -29,7 +29,7 @@ type Props = { visible: boolean; onClose: () => void };
 
 const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
   const dispatch = useDispatch();
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { userData, loading } = useSelector((s: RootState) => s.userData);
 
   const [localVisible, setLocalVisible] = useState(visible);
@@ -77,7 +77,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
   const handleNavigation = (screen: string) => {
     requestClose();
     setTimeout(() => {
-      router.push(screen as any);
+      navigation.navigate(screen);
     }, 250);
   };
 
@@ -155,7 +155,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={User}
                     title="Profile"
                     subtitle="Your details"
-                    onPress={() => handleNavigation("/(tabs)/profile")}
+                    onPress={() => handleNavigation("Profile")}
                   />
                 </View>
 
@@ -165,13 +165,13 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={HelpCircle}
                     title="Support"
                     subtitle="Help & resources"
-                    onPress={() => handleNavigation("/(tabs)/support")}
+                    onPress={() => handleNavigation("Support")}
                   />
                   <MenuItem
                     icon={Package}
                     title="Products"
                     subtitle="Our offerings"
-                    onPress={() => handleNavigation("/(tabs)/product-info")}
+                    onPress={() => handleNavigation("ProductInfo")}
                   />
                 </View>
 
