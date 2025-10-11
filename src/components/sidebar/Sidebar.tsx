@@ -158,7 +158,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={User}
                     title="Profile"
                     subtitle="View your details"
-                    onPress={() => handleNavigation("/(tabs)/index")}
+                    onPress={() => handleNavigation("/(tabs)/profile")}
                   />
                 </View>
 
