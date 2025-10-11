@@ -6,7 +6,6 @@ import {
   View,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   ActivityIndicator,
   Text,
   ScrollView,
@@ -25,8 +24,6 @@ import { useRouter } from "expo-router";
 import type { RootState } from "../../redux/store";
 import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice";
 import { logout } from "../../redux/slices/authSlice";
-
-const { height } = Dimensions.get("window");
 
 type Props = { visible: boolean; onClose: () => void };
 
@@ -94,7 +91,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
   });
   const translateX = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [-320, 0],
+    outputRange: [-280, 0],
   });
 
   return (
@@ -127,7 +124,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     <Text style={styles.appTagline}>Partner Portal</Text>
                   </View>
                   <TouchableOpacity onPress={requestClose} style={styles.closeButton} activeOpacity={0.7}>
-                    <X size={20} color="#FFFFFF" strokeWidth={2.5} />
+                    <X size={18} color="#FFFFFF" strokeWidth={2.5} />
                   </TouchableOpacity>
                 </View>
 
@@ -141,8 +138,8 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     <View style={styles.onlineBadge} />
                   </View>
                   <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{userData.name}</Text>
-                    <Text style={styles.userEmail}>{userData.email}</Text>
+                    <Text style={styles.userName} numberOfLines={1}>{userData.name}</Text>
+                    <Text style={styles.userEmail} numberOfLines={1}>{userData.email}</Text>
                     <View style={styles.userIdContainer}>
                       <Text style={styles.userIdLabel}>ID:</Text>
                       <Text style={styles.userIdValue}>{userData.partnerId}</Text>
@@ -157,8 +154,8 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                   <MenuItem
                     icon={User}
                     title="Profile"
-                    subtitle="View your details"
-                    onPress={() => handleNavigation("/(tabs)/profile")}
+                    subtitle="Your details"
+                    onPress={() => handleNavigation("/profile")}
                   />
                 </View>
 
@@ -167,32 +164,29 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                   <MenuItem
                     icon={HelpCircle}
                     title="Support"
-                    subtitle="Get help & resources"
+                    subtitle="Help & resources"
                     onPress={() => handleNavigation("/(tabs)/support")}
                   />
                   <MenuItem
                     icon={Package}
                     title="Products"
-                    subtitle="Browse our offerings"
+                    subtitle="Our offerings"
                     onPress={() => handleNavigation("/(tabs)/product-info")}
                   />
                 </View>
 
-                <View style={{ height: 100 }} />
+                <View style={{ height: 80 }} />
               </ScrollView>
 
               <View style={styles.footerSection}>
                 <TouchableOpacity style={styles.logoutButton} onPress={onLogoutPress} activeOpacity={0.85}>
                   <View style={styles.logoutIconWrapper}>
-                    <LogOut size={18} color="#EF4444" strokeWidth={2.5} />
+                    <LogOut size={16} color="#EF4444" strokeWidth={2.5} />
                   </View>
-                  <View style={styles.logoutTextContainer}>
-                    <Text style={styles.logoutTitle}>Log Out</Text>
-                    <Text style={styles.logoutSubtitle}>End your session</Text>
-                  </View>
+                  <Text style={styles.logoutTitle}>Log Out</Text>
                 </TouchableOpacity>
                 <View style={styles.versionContainer}>
-                  <Text style={styles.versionText}>Version 1.0.0</Text>
+                  <Text style={styles.versionText}>v1.0.0</Text>
                 </View>
               </View>
             </>
@@ -218,13 +212,13 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon: Icon, title, subtitle, onPres
   return (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.menuIconContainer}>
-        <Icon size={20} color="#00B9AE" strokeWidth={2.5} />
+        <Icon size={18} color="#00B9AE" strokeWidth={2.5} />
       </View>
       <View style={styles.menuTextContainer}>
         <Text style={styles.menuTitle}>{title}</Text>
         <Text style={styles.menuSubtitle}>{subtitle}</Text>
       </View>
-      <ChevronRight size={18} color="#94A3B8" strokeWidth={2.5} />
+      <ChevronRight size={16} color="#94A3B8" strokeWidth={2.5} />
     </TouchableOpacity>
   );
 };
@@ -237,7 +231,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 320,
+    width: 280,
     backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 6, height: 0 },
@@ -257,43 +251,43 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 12,
+    paddingTop: 52,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    gap: 10,
   },
   logoContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
   logoImage: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     tintColor: "#FFFFFF",
   },
   headerTextContainer: {
     flex: 1,
   },
   appName: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: "800",
     color: "#FFFFFF",
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   appTagline: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     color: "rgba(255, 255, 255, 0.85)",
     marginTop: 1,
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     alignItems: "center",
     justifyContent: "center",
@@ -302,78 +296,78 @@ const styles = StyleSheet.create({
   profileSection: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
     backgroundColor: "rgba(0, 0, 0, 0.08)",
   },
   avatarContainer: {
     position: "relative",
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: "rgba(255, 255, 255, 0.3)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 6,
+    elevation: 3,
   },
   avatarText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "800",
     color: "#00B9AE",
   },
   onlineBadge: {
     position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    bottom: 1,
+    right: 1,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: "#10B981",
-    borderWidth: 2.5,
+    borderWidth: 2,
     borderColor: "#00B9AE",
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: 3,
-    letterSpacing: -0.3,
+    marginBottom: 2,
+    letterSpacing: -0.2,
   },
   userEmail: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     color: "rgba(255, 255, 255, 0.85)",
-    marginBottom: 6,
+    marginBottom: 5,
   },
   userIdContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.15)",
     alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
   },
   userIdLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "700",
     color: "rgba(255, 255, 255, 0.7)",
-    marginRight: 4,
+    marginRight: 3,
   },
   userIdValue: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
     color: "#FFFFFF",
   },
@@ -383,53 +377,53 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   menuGroup: {
-    paddingTop: 24,
-    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingHorizontal: 16,
   },
   menuGroupTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
     color: "#64748B",
-    letterSpacing: 1.2,
-    marginBottom: 12,
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 14,
-    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
   menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     backgroundColor: "#F0FDFC",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 10,
   },
   menuTextContainer: {
     flex: 1,
   },
   menuTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: "#0F172A",
-    marginBottom: 2,
-    letterSpacing: -0.2,
+    marginBottom: 1,
+    letterSpacing: -0.1,
   },
   menuSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     color: "#64748B",
   },
@@ -438,49 +432,40 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 20,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#FEF2F2",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 12,
+    paddingVertical: 11,
+    borderRadius: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: "#FEE2E2",
+    gap: 8,
   },
   logoutIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 6,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
-  },
-  logoutTextContainer: {
-    flex: 1,
   },
   logoutTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "800",
     color: "#DC2626",
-    marginBottom: 1,
-  },
-  logoutSubtitle: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#F87171",
   },
   versionContainer: {
     alignItems: "center",
   },
   versionText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
     color: "#94A3B8",
   },
@@ -492,12 +477,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: "#64748B",
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: "#EF4444",
   },
