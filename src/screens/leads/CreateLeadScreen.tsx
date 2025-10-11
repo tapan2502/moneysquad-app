@@ -19,7 +19,7 @@ import LoadingButton from '../../components/LoadingButton';
 import { Snackbar } from 'react-native-paper';
 import { ArrowLeft, Plus, CreditCard as Edit3 } from 'lucide-react-native';
 
-// Validation schema - all fields mandatory except comments and businessName
+// Validation schema - all fields mandatory except comments and businessName (conditionally required)
 const leadSchema = yup.object({
   applicantName: yup.string().required('Applicant name is required').min(2, 'Name must be at least 2 characters'),
   applicantProfile: yup.string().required('Applicant profile is required'),
@@ -30,12 +30,12 @@ const leadSchema = yup.object({
   loanAmount: yup.string().required('Loan amount is required').matches(/^[0-9]+$/, 'Enter a valid amount'),
   city: yup.string().required('City is required'),
   state: yup.string().required('State is required'),
-  businessName: yup.string().when('applicantProfile', {
-    is: (val: string) => val !== 'Salaried Individual',
-    then: (schema) => schema.required('Business name is required'),
-    otherwise: (schema) => schema.optional(),
+  businessName: yup.string().when('applicantProfile', ([applicantProfile], schema) => {
+    return applicantProfile && applicantProfile !== 'Salaried Individual'
+      ? schema.required('Business name is required').min(2, 'Business name must be at least 2 characters')
+      : schema.notRequired();
   }),
-  comments: yup.string().optional(),
+  comments: yup.string().notRequired(),
 });
 
 interface LeadFormData {
@@ -74,9 +74,11 @@ const CreateLeadScreen: React.FC = () => {
 
   const {
     control, handleSubmit, formState: { errors },
-    setValue, watch, reset,
+    setValue, watch, reset, trigger,
   } = useForm<LeadFormData>({
     resolver: yupResolver(leadSchema),
+    mode: 'onChange',
+    context: undefined,
     defaultValues: {
       applicantName: '',
       applicantProfile: '',
@@ -149,6 +151,17 @@ const CreateLeadScreen: React.FC = () => {
 
   const applicantProfile = watch('applicantProfile') || '';
   const isSalariedIndividual = applicantProfile === 'Salaried Individual';
+
+  // Re-validate businessName when applicantProfile changes
+  useEffect(() => {
+    if (applicantProfile) {
+      // Clear businessName if switching to Salaried Individual
+      if (isSalariedIndividual) {
+        setValue('businessName', '');
+      }
+      trigger('businessName');
+    }
+  }, [applicantProfile, isSalariedIndividual, setValue, trigger]);
 
   const loanTypeOptions = loanTypes.map((t) => ({
     label: t.name.replace(/_/g, ' '),
