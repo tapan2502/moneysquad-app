@@ -4,7 +4,8 @@ import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   MapPin, Phone, Mail, Building2, DollarSign, Calendar,
-  CreditCard, Users, Target, TrendingUp
+  CreditCard, Users, Target, TrendingUp, Briefcase, Landmark,
+  Percent, CalendarClock, FileText, User, PhoneCall, MailIcon
 } from 'lucide-react-native';
 import { Lead } from '@/src/redux/slices/leadsSlice';
 
@@ -151,6 +152,84 @@ const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
             id={lead.manager?.managerId}
           />
         </View>
+      </Card>
+
+      {/* Manager Details */}
+      {lead.manager && (
+        <Card title="Manager Details">
+          <KV icon={<User size={16} color="#64748B" />} label="Name" value={`${lead.manager.firstName} ${lead.manager.lastName}`} />
+          <Divider />
+          <KV icon={<PhoneCall size={16} color="#64748B" />} label="Mobile" value={lead.manager.mobile || '—'} />
+          <Divider />
+          <KV icon={<MailIcon size={16} color="#64748B" />} label="Email" value={lead.manager.email || '—'} />
+          {lead.manager.managerId && (
+            <>
+              <Divider />
+              <KV icon={<Briefcase size={16} color="#64748B" />} label="Manager ID" value={lead.manager.managerId} />
+            </>
+          )}
+        </Card>
+      )}
+
+      {/* Disbursement Details */}
+      <Card title="Disbursement Details">
+        {lead.disbursedData ? (
+          <>
+            <KV
+              icon={<DollarSign size={16} color="#64748B" />}
+              label="Loan Amount"
+              value={formatCurrency(lead.disbursedData.loanAmount)}
+            />
+            <Divider />
+            <KV
+              icon={<CalendarClock size={16} color="#64748B" />}
+              label="Tenure"
+              value={`${lead.disbursedData.tenureMonths || 0} months`}
+            />
+            <Divider />
+            <KV
+              icon={<Percent size={16} color="#64748B" />}
+              label="Interest Rate"
+              value={`${lead.disbursedData.interestRatePA || 0}% p.a.`}
+            />
+            <Divider />
+            <KV
+              icon={<FileText size={16} color="#64748B" />}
+              label="Processing Fee"
+              value={`${lead.disbursedData.processingFee || 0}%`}
+            />
+            <Divider />
+            <KV
+              icon={<DollarSign size={16} color="#64748B" />}
+              label="Insurance"
+              value={formatCurrency(lead.disbursedData.insuranceCharges)}
+            />
+            <Divider />
+            <KV
+              icon={<Briefcase size={16} color="#64748B" />}
+              label="Loan Scheme"
+              value={lead.disbursedData.loanScheme || '—'}
+            />
+            <Divider />
+            <KV
+              icon={<FileText size={16} color="#64748B" />}
+              label="LAN Number"
+              value={lead.disbursedData.lanNumber || '—'}
+            />
+            <Divider />
+            <KV
+              icon={<Calendar size={16} color="#64748B" />}
+              label="Disbursed Date"
+              value={formatDate(lead.disbursedData.actualDisbursedDate, false)}
+            />
+          </>
+        ) : (
+          <View style={styles.notAvailable}>
+            <Landmark size={32} color="#CBD5E1" strokeWidth={1.5} />
+            <Text style={styles.notAvailableText}>Disbursement details not available</Text>
+            <Text style={styles.notAvailableSub}>Details will appear once the loan is disbursed</Text>
+          </View>
+        )}
       </Card>
 
       {/* Timeline summary */}
@@ -326,6 +405,27 @@ const styles = StyleSheet.create({
     borderColor: '#E6EAF2',
   },
   noteTxt: { fontSize: 13.5, color: '#1F2937', fontWeight: '600', lineHeight: 20 },
+
+  // NOT AVAILABLE
+  notAvailable: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  notAvailableText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  notAvailableSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
 });
 
 export default LeadDetailsTab;

@@ -31,7 +31,26 @@ export interface Loan { type: string; amount: number; _id: string; }
 export interface Partner { _id: string; partnerId: string; basicInfo: { fullName: string; mobile: string; email: string; }; }
 export interface Manager { _id: string; firstName: string; lastName: string; managerId: string; email: string; mobile: string; }
 export interface Associate { _id: string; firstName: string; lastName: string; associateDisplayId: string; email: string; mobile: string; }
-export interface DisbursementData { amount: number; date: string; bankName: string; accountNumber: string; }
+export interface DisbursementData {
+  _id?: string;
+  leadUserId?: string;
+  loanAmount: number;
+  tenureMonths: number;
+  interestRatePA: number;
+  processingFee: number;
+  insuranceCharges: number;
+  loanScheme: string;
+  lanNumber: string;
+  actualDisbursedDate: string;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  // Legacy fields
+  amount?: number;
+  date?: string;
+  bankName?: string;
+  accountNumber?: string;
+}
 export interface Lead {
   id: string; leadId: string; applicantName: string; applicantProfile: string; email: string; mobile: string;
   pincode: Pincode; comments: string; loan: Loan; lenderType: string | null; partnerId: Partner;
