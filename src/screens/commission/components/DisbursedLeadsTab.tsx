@@ -30,6 +30,17 @@ const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (lea
   const StatusIcon = getStatusIcon(item.payoutStatus)
   const statusColor = getStatusColor(item.payoutStatus)
 
+  const handlePress = () => {
+    const leadUserId = item.disbursedId?.leadUserId || item.lead_Id || item.leadId;
+    console.log('[DisbursedLeadsTab Row] Eye icon pressed');
+    console.log('[DisbursedLeadsTab Row] Item data:', JSON.stringify(item, null, 2));
+    console.log('[DisbursedLeadsTab Row] Extracted leadUserId:', leadUserId);
+    console.log('[DisbursedLeadsTab Row] disbursedId:', item.disbursedId);
+    console.log('[DisbursedLeadsTab Row] lead_Id:', item.lead_Id);
+    console.log('[DisbursedLeadsTab Row] leadId:', item.leadId);
+    onViewDetails(leadUserId);
+  };
+
   return (
     <View style={styles.row}>
       <View style={styles.left}>
@@ -56,7 +67,7 @@ const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (lea
 
       <TouchableOpacity
         style={styles.eyeBtn}
-        onPress={() => onViewDetails(item.disbursedId?.leadUserId || item.lead_Id)}
+        onPress={handlePress}
         activeOpacity={0.7}
       >
         <Eye size={18} color="#4F46E5" strokeWidth={2} />
@@ -78,8 +89,11 @@ const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
   const [selectedLeadUserId, setSelectedLeadUserId] = useState<string>("")
 
   const handleViewDetails = (leadUserId: string) => {
+    console.log('[DisbursedLeadsTab] handleViewDetails called with leadUserId:', leadUserId);
+    console.log('[DisbursedLeadsTab] leadUserId type:', typeof leadUserId);
     setSelectedLeadUserId(leadUserId)
     setPayoutModalVisible(true)
+    console.log('[DisbursedLeadsTab] Modal set to visible with selectedLeadUserId:', leadUserId);
   }
 
   const handleCloseModal = () => {
