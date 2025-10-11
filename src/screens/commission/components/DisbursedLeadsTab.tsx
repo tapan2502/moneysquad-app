@@ -31,10 +31,20 @@ const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (lea
   const statusColor = getStatusColor(item.payoutStatus)
 
   const handlePress = () => {
-    const leadUserId = item.lead_Id;
-    console.log('[DisbursedLeadsTab Row] Eye icon pressed');
-    console.log('[DisbursedLeadsTab Row] Using lead_Id (MongoDB ObjectId):', leadUserId);
+    console.log('[DisbursedLeadsTab Row] ===== DEBUGGING ID FIELDS =====');
+    console.log('[DisbursedLeadsTab Row] item._id:', item._id);
+    console.log('[DisbursedLeadsTab Row] item.leadId:', item.leadId);
+    console.log('[DisbursedLeadsTab Row] item.lead_Id:', item.lead_Id);
+    console.log('[DisbursedLeadsTab Row] item.partner_Id:', item.partner_Id);
+    console.log('[DisbursedLeadsTab Row] item.disbursedId:', item.disbursedId);
+    console.log('[DisbursedLeadsTab Row] item.disbursedId?._id:', item.disbursedId?._id);
+    console.log('[DisbursedLeadsTab Row] item.disbursedId?.leadUserId:', item.disbursedId?.leadUserId);
+    console.log('[DisbursedLeadsTab Row] item.lender?.loan_id:', item.lender?.loan_id);
+    console.log('[DisbursedLeadsTab Row] ===== END DEBUG =====');
     console.log('[DisbursedLeadsTab Row] Full item:', JSON.stringify(item, null, 2));
+
+    const leadUserId = item.lead_Id;
+    console.log('[DisbursedLeadsTab Row] Using lead_Id:', leadUserId);
     onViewDetails(leadUserId);
   };
 
