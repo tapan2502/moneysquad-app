@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, TextInput, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, TextInput, StatusBar, Modal, Linking } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
+import { Info, X } from 'lucide-react-native';
 import { Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootState } from '../../redux/store';
@@ -20,6 +21,7 @@ const LeadsScreen = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     status: [],
     loanType: [],
@@ -174,9 +176,18 @@ const LeadsScreen = () => {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('CreateLead')} activeOpacity={0.85}>
-          <Feather name="plus" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() => setShowInfoModal(true)}
+            activeOpacity={0.7}
+          >
+            <Info size={20} color="#4F46E5" strokeWidth={2.5} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('CreateLead')} activeOpacity={0.85}>
+            <Feather name="plus" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       {/* Sleek curved toolbar: Search + Filter */}
@@ -264,6 +275,53 @@ const LeadsScreen = () => {
       >
         {error}
       </Snackbar>
+
+      <Modal
+        visible={showInfoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInfoModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.infoModalContainer}>
+            <View style={styles.infoModalHeader}>
+              <View style={styles.infoIconContainer}>
+                <Info size={24} color="#4F46E5" strokeWidth={2.5} />
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowInfoModal(false)}
+                style={styles.closeButton}
+              >
+                <X size={20} color="#64748B" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.infoModalTitle}>Leads Display Period</Text>
+            <Text style={styles.infoModalMessage}>
+              Leads added in last 60 days. For older leads or to download the leads data go to Archived Leads section on the web app.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.webLinkButton}
+              onPress={() => {
+                setShowInfoModal(false);
+                Linking.openURL('https://app.moneysquad.in/');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.webLinkText}>https://app.moneysquad.in/</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.infoModalButton}
+              onPress={() => setShowInfoModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.infoModalButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -284,6 +342,23 @@ const styles = StyleSheet.create({
   headerLeft: { flex: 1 },
   headerTitle: { fontSize: 26, fontWeight: '900', color: '#0F172A', letterSpacing: -0.4 },
   headerSubtitle: { fontSize: 13, color: '#6B7280', fontWeight: '700', marginTop: 4 },
+
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  infoButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
 
   createButton: {
     width: 48,
@@ -403,6 +478,97 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 15, color: '#64748B', textAlign: 'center', lineHeight: 22 },
 
   snackbar: { backgroundColor: '#0F172A' },
+
+  // Info Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  infoModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  infoModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  infoIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E0E7FF',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
+    letterSpacing: -0.3,
+  },
+  infoModalMessage: {
+    fontSize: 15,
+    color: '#475569',
+    lineHeight: 22,
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  webLinkButton: {
+    backgroundColor: '#F0FDFC',
+    borderWidth: 1,
+    borderColor: '#CCFBF1',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  webLinkText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#00B9AE',
+    textAlign: 'center',
+  },
+  infoModalButton: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  infoModalButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
 });
 
 export default LeadsScreen;
