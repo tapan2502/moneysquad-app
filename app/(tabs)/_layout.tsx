@@ -193,28 +193,26 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Menu",
-          tabBarIcon: ({ focused }) => (
-            <Menu size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
-          ),
-          tabBarLabel: ({ focused }) => (
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 4,
-                letterSpacing: 0.2,
-              }}
-            >
-              Menu
-            </Text>
-          ),
+          href: null,
         }}
       />
 
       <Tabs.Screen
         name="team"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="support"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="product-info"
         options={{
           href: null,
         }}
