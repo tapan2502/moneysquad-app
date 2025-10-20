@@ -11,6 +11,8 @@ import {
   Image,
   Dimensions,
   StatusBar,
+  Pressable,
+  Modal,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRoute, useNavigation } from "@react-navigation/native"
@@ -30,6 +32,8 @@ import {
   Shield,
   TrendingUp,
   ImageOff,
+  Maximize2,
+  X,
 } from "lucide-react-native"
 import * as Clipboard from "expo-clipboard"
 import { Snackbar } from "react-native-paper"
@@ -44,6 +48,7 @@ const OfferDetailsScreen: React.FC = () => {
 
   const [snackbarVisible, setSnackbarVisible] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState("")
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false)
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -87,6 +92,8 @@ const OfferDetailsScreen: React.FC = () => {
 
   const hasImage = !!offer.bankImage
   const features = Array.isArray(offer.keyFeatures) ? offer.keyFeatures : []
+  const handleOpenImageModal = () => setIsImageModalVisible(true)
+  const handleCloseImageModal = () => setIsImageModalVisible(false)
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -95,7 +102,9 @@ const OfferDetailsScreen: React.FC = () => {
       {/* HERO */}
       <View style={styles.heroSection}>
         {hasImage ? (
-          <Image source={{ uri: offer.bankImage }} style={styles.heroImage} resizeMode="cover" />
+          <Pressable style={styles.heroImageTouchable} onPress={handleOpenImageModal} accessibilityRole="button">
+            <Image source={{ uri: offer.bankImage }} style={styles.heroImage} resizeMode="cover" />
+          </Pressable>
         ) : (
           <View style={[styles.heroImage, styles.heroFallback]}>
             <ImageOff size={28} color="#E5E7EB" />
@@ -108,6 +117,7 @@ const OfferDetailsScreen: React.FC = () => {
           style={styles.heroOverlay}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
+          pointerEvents="box-none"
         >
           {/* Header Row */}
           <View style={styles.header}>
@@ -115,12 +125,25 @@ const OfferDetailsScreen: React.FC = () => {
               <ArrowLeft size={22} color="#FFFFFF" />
             </TouchableOpacity>
 
-            {offer.isFeatured && (
-              <View style={styles.featuredBadge}>
-                <Star size={12} color="#CA8A04" fill="#FACC15" strokeWidth={0} />
-                <Text style={styles.featuredText}>FEATURED</Text>
-              </View>
-            )}
+            <View style={styles.headerActions}>
+              {hasImage && (
+                <TouchableOpacity
+                  style={styles.expandImageButton}
+                  onPress={handleOpenImageModal}
+                  accessibilityRole="button"
+                  accessibilityLabel="View bank image"
+                >
+                  <Maximize2 size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+
+              {offer.isFeatured && (
+                <View style={styles.featuredBadge}>
+                  <Star size={12} color="#CA8A04" fill="#FACC15" strokeWidth={0} />
+                  <Text style={styles.featuredText}>FEATURED</Text>
+                </View>
+              )}
+            </View>
           </View>
 
           {/* Bank + Headline */}
@@ -293,6 +316,30 @@ const OfferDetailsScreen: React.FC = () => {
         <View style={{ height: 28 }} />
       </ScrollView>
 
+      {hasImage && (
+        <Modal
+          visible={isImageModalVisible}
+          onRequestClose={handleCloseImageModal}
+          animationType="fade"
+          transparent
+        >
+          <View style={styles.imageModalBackdrop}>
+            <Pressable style={styles.modalBackdropTouchable} onPress={handleCloseImageModal} />
+            <View style={styles.imageModalContent}>
+              <TouchableOpacity
+                style={styles.imageModalCloseButton}
+                onPress={handleCloseImageModal}
+                accessibilityRole="button"
+                accessibilityLabel="Close image preview"
+              >
+                <X size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Image source={{ uri: offer.bankImage }} style={styles.imageModal} resizeMode="contain" />
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* Snackbar */}
       <Snackbar
         visible={snackbarVisible}
@@ -317,6 +364,10 @@ const styles = StyleSheet.create({
     height: height * 0.45,
     position: "relative",
     backgroundColor: "#111827",
+  },
+  heroImageTouchable: {
+    width: "100%",
+    height: "100%",
   },
   heroImage: {
     width: "100%",
@@ -344,6 +395,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   backButton: {
     width: 42,
     height: 42,
@@ -351,6 +407,21 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     justifyContent: "center",
     alignItems: "center",
+  },
+  expandImageButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 4,
   },
   featuredBadge: {
     flexDirection: "row",
@@ -529,6 +600,45 @@ const styles = StyleSheet.create({
   copyButtonText: { fontSize: 15, color: "#FFFFFF", fontWeight: "900" },
 
   snackbar: { backgroundColor: "#4F46E5" },
+  imageModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(7, 11, 24, 0.94)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalBackdropTouchable: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  imageModalContent: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: "#0B1020",
+    borderRadius: 18,
+    padding: 18,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  imageModal: {
+    width: "100%",
+    height: height * 0.5,
+    borderRadius: 12,
+  },
+  imageModalCloseButton: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(15, 23, 42, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 })
 
 export default OfferDetailsScreen

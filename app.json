@@ -17,7 +17,74 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "manifest": {
+        "queries": [
+          {
+            "intent": [
+              {
+                "action": "android.intent.action.DIAL",
+                "data": {
+                  "scheme": "tel"
+                }
+              }
+            ]
+          },
+          {
+            "intent": [
+              {
+                "action": "android.intent.action.VIEW",
+                "data": {
+                  "scheme": "tel"
+                }
+              }
+            ]
+          },
+          {
+            "intent": [
+              {
+                "action": "android.intent.action.SENDTO",
+                "data": {
+                  "scheme": "mailto"
+                }
+              }
+            ]
+          },
+          {
+            "intent": [
+              {
+                "action": "android.intent.action.VIEW",
+                "data": {
+                  "scheme": "mailto"
+                }
+              }
+            ]
+          },
+          {
+            "intent": [
+              {
+                "action": "android.intent.action.VIEW",
+                "data": {
+                  "scheme": "whatsapp"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "tel"
+            },
+            {
+              "scheme": "mailto"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

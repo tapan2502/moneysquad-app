@@ -1,10 +1,12 @@
 // src/screens/leads/tabs/LeadDetailsTab.tsx
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated, TouchableOpacity } from 'react-native';
+import { openPhoneDialer, openEmailClient } from '@/src/utils/linking';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   MapPin, Phone, Mail, Building2, DollarSign, Calendar,
-  CreditCard, Users, Target, TrendingUp
+  CreditCard, Landmark, Percent, CalendarClock, FileText, 
+  User, Briefcase, TrendingUp
 } from 'lucide-react-native';
 import { Lead } from '@/src/redux/slices/leadsSlice';
 
@@ -50,282 +52,435 @@ type Props = {
 
 const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
   const statusColor = useMemo(() => getStatusColor(lead.status), [lead.status]);
-  const gradientColors = useMemo(() => ['#EEF2FF', '#FFFFFF'], []);
-  const statusTint = useMemo(() => ({ dot: statusColor, bg: `${statusColor}1A`, text: statusColor }), [statusColor]);
-
   const monogram = (lead?.applicantName || '?').trim().charAt(0).toUpperCase();
-  const city = lead?.pincode?.city || '—';
-  const state = lead?.pincode?.state || '—';
-  const location = `${city}, ${state}`;
   const type = (lead?.loan?.type || '—').replace(/_/g, ' ');
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={styles.container}
       showsVerticalScrollIndicator={false}
       onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
       scrollEventThrottle={16}
     >
-      {/* Premium hero band */}
-      <LinearGradient colors={gradientColors} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.hero}>
-        <View style={styles.heroRow}>
-          <View style={styles.heroLeft}>
-            <View style={[styles.avatar, { borderColor: statusColor }]}>
-              <Text style={styles.avatarTxt}>{monogram}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name} numberOfLines={1}>{lead.applicantName || '—'}</Text>
-              <Text style={styles.secText} numberOfLines={1}>{lead.email || '—'}</Text>
-            </View>
+      {/* Header Card */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View style={[styles.avatar, { backgroundColor: statusColor }]}>
+            <Text style={styles.avatarText}>{monogram}</Text>
           </View>
-
-          <View style={styles.heroRight}>
-            {/* STATUS */}
-            <View style={[styles.statusCap, { backgroundColor: statusTint.bg }]}>
-              <View style={[styles.dot, { backgroundColor: statusTint.dot }]} />
-              <Text style={[styles.statusTxt, { color: statusTint.text }]} numberOfLines={1}>
-                {(lead.status || 'UNKNOWN').toUpperCase()}
-              </Text>
-            </View>
-            {/* ID */}
-            <View style={styles.idCap}>
-              <Text style={styles.idKey}>ID</Text>
-              <Text style={styles.idVal} numberOfLines={1}>{lead.leadId || '—'}</Text>
-            </View>
+          <View style={styles.headerInfo}>
+            <Text style={styles.name}>{lead.applicantName || '—'}</Text>
+            <Text style={styles.id}>ID: {lead.leadId || '—'}</Text>
+          </View>
+          <View style={[styles.status, { backgroundColor: `${statusColor}15` }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {(lead.status || 'N/A').toUpperCase()}
+            </Text>
           </View>
         </View>
-      </LinearGradient>
 
-      {/* Metric chips (dense, modern) */}
-      <View style={styles.metrics}>
-        <View style={styles.metric}>
-          <DollarSign size={16} color="#0EA5E9" />
-          <Text style={styles.metricVal} numberOfLines={1}>{formatCurrency(lead?.loan?.amount)}</Text>
-          <Text style={styles.metricLbl}>Amount</Text>
-        </View>
-        <View style={styles.metric}>
-          <CreditCard size={16} color="#6366F1" />
-          <Text style={styles.metricVal} numberOfLines={1}>{type}</Text>
-          <Text style={styles.metricLbl}>Type</Text>
-        </View>
-        <View style={styles.metric}>
-          <MapPin size={16} color="#F59E0B" />
-          <Text style={styles.metricVal} numberOfLines={1}>{city}</Text>
-          <Text style={styles.metricLbl}>City</Text>
+        {/* Action Buttons */}
+        <View style={styles.actions}>
+          <TouchableOpacity 
+            style={styles.actionBtn}
+            onPress={() => openPhoneDialer(lead.mobile)}
+            activeOpacity={0.7}
+          >
+            <Phone size={18} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={styles.actionText}>Call</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionBtn, styles.actionBtnSecondary]}
+            onPress={() => openEmailClient(lead.email)}
+            activeOpacity={0.7}
+          >
+            <Mail size={18} color="#4F46E5" strokeWidth={2.5} />
+            <Text style={styles.actionTextSecondary}>Email</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Info grid (sleek key–value list) */}
-      <Card title="Contact">
-        <KV icon={<Phone size={16} color="#64748B" />} label="Phone" value={lead.mobile || '—'} />
-        <Divider />
-        <KV icon={<Mail size={16} color="#64748B" />} label="Email" value={lead.email || '—'} />
-        <Divider />
-        <KV
-          icon={<MapPin size={16} color="#64748B" />}
-          label="Address"
-          value={`${location}${lead.pincode?.pincode ? ` • ${lead.pincode.pincode}` : ''}`}
-          multiline
-        />
-        {!!lead.businessName && (
-          <>
-            <Divider />
-            <KV icon={<Building2 size={16} color="#64748B" />} label="Business" value={lead.businessName} />
-          </>
-        )}
-      </Card>
-
-      {/* Assignment compact cards */}
-      <Card title="Assignment" innerPad={8}>
-        <View style={styles.assignRow}>
-          <SmallCard
-            icon={<Users size={14} color="#0EA5E9" />}
-            title="Partner"
-            name={lead.partnerId?.basicInfo?.fullName || '—'}
-            id={lead.partnerId?.partnerId}
-          />
-          <SmallCard
-            icon={<Target size={14} color="#F59E0B" />}
-            title="Manager"
-            name={lead.manager ? `${lead.manager.firstName} ${lead.manager.lastName}` : 'Not Assigned'}
-            id={lead.manager?.managerId}
-          />
-        </View>
-      </Card>
-
-      {/* Timeline summary */}
-      <Card title="Timeline">
-        <View style={styles.tlRow}>
-          <Chip icon={<Calendar size={14} color="#0EA5E9" />} text={formatDate(lead.createdAt)} />
-          <Chip icon={<TrendingUp size={14} color="#8B5CF6" />} text={formatDate(lead.statusUpdatedAt)} />
-        </View>
-      </Card>
-
-      {/* Comments (if any) */}
-      {!!lead.comments && (
-        <Card title="Comments">
-          <View style={styles.note}>
-            <Text style={styles.noteTxt}>{lead.comments}</Text>
+      {/* Loan Details */}
+      <View style={styles.card}>
+        <View style={styles.grid}>
+          <View style={styles.gridItem}>
+            <DollarSign size={20} color="#0EA5E9" strokeWidth={2.5} />
+            <Text style={styles.gridLabel}>Loan Amount</Text>
+            <Text style={styles.gridValue}>{formatCurrency(lead?.loan?.amount)}</Text>
           </View>
-        </Card>
+          <View style={styles.gridItem}>
+            <CreditCard size={20} color="#8B5CF6" strokeWidth={2.5} />
+            <Text style={styles.gridLabel}>Type</Text>
+            <Text style={styles.gridValue}>{type}</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <MapPin size={20} color="#F59E0B" strokeWidth={2.5} />
+            <Text style={styles.gridLabel}>Location</Text>
+            <Text style={styles.gridValue}>{lead?.pincode?.city || '—'}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Contact Details */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Contact Details</Text>
+        <View style={styles.list}>
+          <Row icon={<Phone size={18} color="#64748B" />} label="Mobile" value={lead.mobile || '—'} />
+          <Row icon={<Mail size={18} color="#64748B" />} label="Email" value={lead.email || '—'} />
+          <Row 
+            icon={<MapPin size={18} color="#64748B" />} 
+            label="Address" 
+            value={`${lead?.pincode?.city || '—'}, ${lead?.pincode?.state || '—'}${lead.pincode?.pincode ? ` • ${lead.pincode.pincode}` : ''}`} 
+          />
+          {lead.businessName && (
+            <Row icon={<Building2 size={18} color="#64748B" />} label="Business" value={lead.businessName} />
+          )}
+        </View>
+      </View>
+
+      {/* Manager Details */}
+      {lead.manager && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Relationship Manager</Text>
+          <View style={styles.managerHeader}>
+            <View style={styles.managerInfo}>
+              <Text style={styles.managerName}>
+                {lead.manager.firstName} {lead.manager.lastName}
+              </Text>
+              {lead.manager.managerId && (
+                <Text style={styles.managerId}>ID: {lead.manager.managerId}</Text>
+              )}
+            </View>
+            <View style={styles.managerActions}>
+              <TouchableOpacity 
+                style={styles.iconBtn}
+                onPress={() => openPhoneDialer(lead.manager?.mobile)}
+              >
+                <Phone size={20} color="#4F46E5" strokeWidth={2.5} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.iconBtn}
+                onPress={() => openEmailClient(lead.manager?.email)}
+              >
+                <Mail size={20} color="#4F46E5" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       )}
 
-      <View style={{ height: 80 }} />
+      {/* Disbursement Details */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Disbursement Details</Text>
+        {lead.disbursedData ? (
+          <View style={styles.list}>
+            <Row 
+              icon={<DollarSign size={18} color="#64748B" />} 
+              label="Amount" 
+              value={formatCurrency(lead.disbursedData.loanAmount)} 
+            />
+            <Row 
+              icon={<CalendarClock size={18} color="#64748B" />} 
+              label="Tenure" 
+              value={`${lead.disbursedData.tenureMonths || 0} months`} 
+            />
+            <Row 
+              icon={<Percent size={18} color="#64748B" />} 
+              label="Interest Rate" 
+              value={`${lead.disbursedData.interestRatePA || 0}% p.a.`} 
+            />
+            <Row 
+              icon={<FileText size={18} color="#64748B" />} 
+              label="Processing Fee" 
+              value={`${lead.disbursedData.processingFee || 0}%`} 
+            />
+            <Row 
+              icon={<DollarSign size={18} color="#64748B" />} 
+              label="Insurance" 
+              value={formatCurrency(lead.disbursedData.insuranceCharges)} 
+            />
+            <Row 
+              icon={<Briefcase size={18} color="#64748B" />} 
+              label="Scheme" 
+              value={lead.disbursedData.loanScheme || '—'} 
+            />
+            <Row 
+              icon={<FileText size={18} color="#64748B" />} 
+              label="LAN Number" 
+              value={lead.disbursedData.lanNumber || '—'} 
+            />
+            <Row 
+              icon={<Calendar size={18} color="#64748B" />} 
+              label="Disbursed Date" 
+              value={formatDate(lead.disbursedData.actualDisbursedDate, false)} 
+            />
+          </View>
+        ) : (
+          <View style={styles.empty}>
+            <Landmark size={32} color="#CBD5E1" />
+            <Text style={styles.emptyText}>Not disbursed yet</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Timeline */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Timeline</Text>
+        <View style={styles.timeline}>
+          <View style={styles.timelineItem}>
+            <Calendar size={16} color="#0EA5E9" />
+            <View>
+              <Text style={styles.timelineLabel}>Created</Text>
+              <Text style={styles.timelineValue}>{formatDate(lead.createdAt)}</Text>
+            </View>
+          </View>
+          <View style={styles.timelineItem}>
+            <TrendingUp size={16} color="#8B5CF6" />
+            <View>
+              <Text style={styles.timelineLabel}>Updated</Text>
+              <Text style={styles.timelineValue}>{formatDate(lead.statusUpdatedAt)}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Comments */}
+      {lead.comments && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Comments</Text>
+          <Text style={styles.comment}>{lead.comments}</Text>
+        </View>
+      )}
+
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 };
 
-/* ---------- Small internal building blocks ---------- */
-const Card: React.FC<{ title: string; children: React.ReactNode; innerPad?: number }> = ({ title, children, innerPad = 16 }) => (
-  <View style={styles.card}>
-    <Text style={styles.cardTitle}>{title}</Text>
-    <View style={{ paddingHorizontal: innerPad, paddingBottom: innerPad }}>{children}</View>
-  </View>
-);
-
-const KV: React.FC<{ icon: React.ReactNode; label: string; value: string; multiline?: boolean }> = ({ icon, label, value, multiline }) => (
-  <View style={styles.kvRow}>
-    <View style={styles.kvLeft}>
+/* Components */
+const Row: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
+  <View style={styles.row}>
+    <View style={styles.rowLeft}>
       {icon}
-      <Text style={styles.kvLabel}>{label}</Text>
+      <Text style={styles.rowLabel}>{label}</Text>
     </View>
-    <Text
-      style={[styles.kvValue, multiline && { lineHeight: 20 }]}
-      numberOfLines={multiline ? 3 : 1}
-    >
-      {value}
-    </Text>
+    <Text style={styles.rowValue}>{value}</Text>
   </View>
 );
 
-const Divider = () => <View style={styles.divider} />;
-
-const SmallCard: React.FC<{ icon: React.ReactNode; title: string; name: string; id?: string }> = ({ icon, title, name, id }) => (
-  <View style={styles.smallCard}>
-    <View style={styles.smallHead}>
-      {icon}
-      <Text style={styles.smallTitle}>{title}</Text>
-    </View>
-    <Text style={styles.smallName} numberOfLines={1}>{name}</Text>
-    {!!id && <Text style={styles.smallId}>ID: {id}</Text>}
-  </View>
-);
-
-const Chip: React.FC<{ icon: React.ReactNode; text: string }> = ({ icon, text }) => (
-  <View style={styles.chip}>
-    {icon}
-    <Text style={styles.chipTxt}>{text}</Text>
-  </View>
-);
-
-/* -------------------- Styles -------------------- */
+/* Styles */
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
 
-  // HERO
-  hero: {
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF2',
+  // Header
+  header: {
+    backgroundColor: '#FFF',
+    padding: 16,
+    gap: 16,
   },
-  heroRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  heroLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   avatar: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2,
-  },
-  avatarTxt: { fontSize: 16, fontWeight: '900', color: '#0F172A' },
-  name: { fontSize: 18, fontWeight: '900', color: '#0F172A', letterSpacing: -0.2 },
-  secText: { fontSize: 12.5, fontWeight: '700', color: '#6B7280', marginTop: 2 },
-
-  heroRight: { alignItems: 'flex-end', gap: 6, maxWidth: 170 },
-  statusCap: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-  dot: { width: 6, height: 6, borderRadius: 3 },
-  statusTxt: { fontSize: 10, fontWeight: '900', letterSpacing: 0.6 },
-  idCap: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E6EAF2',
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10,
-  },
-  idKey: { fontSize: 10, color: '#64748B', fontWeight: '900', letterSpacing: 0.4 },
-  idVal: { fontSize: 12, color: '#0F172A', fontWeight: '800' },
-
-  // METRICS
-  metrics: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginTop: 12, marginBottom: 10 },
-  metric: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#E6EAF2',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  metricVal: { marginTop: 6, fontSize: 14, fontWeight: '900', color: '#0F172A' },
-  metricLbl: { marginTop: 2, fontSize: 10.5, fontWeight: '800', color: '#64748B', letterSpacing: 0.2 },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  headerInfo: { flex: 1 },
+  name: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  id: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
 
-  // CARD
+  // Actions
+  actions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#4F46E5',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  actionBtnSecondary: {
+    backgroundColor: '#F1F5F9',
+  },
+  actionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  actionTextSecondary: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4F46E5',
+  },
+
+  // Card
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginHorizontal: 16,
+    backgroundColor: '#FFF',
     marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#E6EAF2',
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 2,
+    padding: 16,
   },
   cardTitle: {
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10,
-    fontSize: 14.5, fontWeight: '900', color: '#0F172A', letterSpacing: -0.2,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 16,
   },
 
-  // KEY–VALUE
-  kvRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10 },
-  kvLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 110 },
-  kvLabel: { fontSize: 12, color: '#6B7280', fontWeight: '800' },
-  kvValue: { flex: 1, fontSize: 14, fontWeight: '800', color: '#0F172A' },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E6EAF2' },
-
-  // ASSIGNMENT
-  assignRow: { flexDirection: 'row', gap: 10, padding: 8, paddingTop: 0 },
-  smallCard: {
+  // Grid
+  grid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  gridItem: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E6EAF2',
+    alignItems: 'center',
+    gap: 8,
   },
-  smallHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  smallTitle: { fontSize: 11, fontWeight: '900', color: '#6B7280', letterSpacing: 0.4 },
-  smallName: { fontSize: 14, fontWeight: '900', color: '#0F172A' },
-  smallId: { fontSize: 11, fontWeight: '700', color: '#9CA3AF', marginTop: 2 },
+  gridLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  gridValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
 
-  // TIMELINE SUMMARY
-  tlRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', paddingHorizontal: 16, paddingBottom: 8 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E6EAF2'
+  // List
+  list: { gap: 12 },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
-  chipTxt: { fontSize: 12, fontWeight: '800', color: '#0F172A' },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  rowLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  rowValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+    textAlign: 'right',
+  },
 
-  // COMMENTS
-  note: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E6EAF2',
+  // Manager
+  managerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  noteTxt: { fontSize: 13.5, color: '#1F2937', fontWeight: '600', lineHeight: 20 },
+  managerInfo: { flex: 1 },
+  managerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  managerId: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  managerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Timeline
+  timeline: { gap: 16 },
+  timelineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  timelineLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  timelineValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+
+  // Empty State
+  empty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    gap: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#94A3B8',
+  },
+
+  // Comment
+  comment: {
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 20,
+  },
 });
 
 export default LeadDetailsTab;

@@ -1,7 +1,7 @@
 // src/screens/leads/tabs/LeadTimelineTab.tsx
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { Clock, CheckCircle, AlertCircle, X as XIcon } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, Dimensions } from 'react-native';
+import { Clock, CheckCircle, AlertCircle, X as XIcon, ImageIcon, ZoomIn } from 'lucide-react-native';
 
 const safeLower = (v: unknown) => (typeof v === 'string' ? v : '').toLowerCase();
 
@@ -46,6 +46,7 @@ type TimelineItem = {
   rejectReason?: string;
   rejectComment?: string;
   closeReason?: string;
+  rejectImage?: string | null;
 };
 
 type Props = {
@@ -54,6 +55,8 @@ type Props = {
 };
 
 const LeadTimelineTab: React.FC<Props> = ({ leadTimeline, isTimelineLoading }) => {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   if (isTimelineLoading) {
     return (
       <View style={styles.loadingContainer}><Text style={styles.loadingText}>Loading timeline…</Text></View>
@@ -108,11 +111,63 @@ const LeadTimelineTab: React.FC<Props> = ({ leadTimeline, isTimelineLoading }) =
                   <Text style={styles.alertText}>{event.closeReason}</Text>
                 </View>
               )}
+              {!!event.rejectImage && (
+                <TouchableOpacity
+                  style={styles.imagePreview}
+                  onPress={() => setSelectedImage(event.rejectImage!)}
+                  activeOpacity={0.7}
+                >
+                  <Image
+                    source={{ uri: event.rejectImage }}
+                    style={styles.thumbnailImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.imageOverlay}>
+                    <ZoomIn size={20} color="#fff" strokeWidth={2.5} />
+                    <Text style={styles.imageOverlayText}>View Image</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         );
       })}
       <View style={{ height: 16 }} />
+
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalCloseArea}
+            activeOpacity={1}
+            onPress={() => setSelectedImage(null)}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Reject Image</Text>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setSelectedImage(null)}
+              >
+                <XIcon size={24} color="#fff" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+          {selectedImage && (
+            <View style={styles.modalImageContainer}>
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            </View>
+          )}
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -140,6 +195,74 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '900', color: '#374151' },
   emptySub: { fontSize: 13, color: '#6B7280' },
+
+  imagePreview: {
+    marginTop: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#F8FAFC',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  imageOverlayText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+  },
+  modalCloseArea: {
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  modalCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  fullImage: {
+    width: Dimensions.get('window').width - 40,
+    height: Dimensions.get('window').height - 200,
+  },
 });
 
 export default LeadTimelineTab;

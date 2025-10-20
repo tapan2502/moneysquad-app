@@ -239,7 +239,7 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
     <View style={{ flex: 1, padding: 16 }}>
       {/* Sleek segmented control (no big title/description) */}
       <View style={styles.segment}>
-        <TabButton label="Individual" active={subTab === "individual"} onPress={() => setSubTab("individual")} />
+        <TabButton label="Personal" active={subTab === "individual"} onPress={() => setSubTab("individual")} />
         <TabButton label="Professional" active={subTab === "professional"} onPress={() => setSubTab("professional")} />
         <TabButton label="Business" active={subTab === "business"} onPress={() => setSubTab("business")} />
       </View>
