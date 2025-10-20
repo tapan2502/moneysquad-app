@@ -18,63 +18,6 @@
         "backgroundColor": "#FFFFFF"
       },
       "usesCleartextTraffic": true,
-<<<<<<< HEAD
-      "manifest": {
-        "queries": [
-          {
-            "intent": [
-              {
-                "action": "android.intent.action.DIAL",
-                "data": {
-                  "scheme": "tel"
-                }
-              }
-            ]
-          },
-          {
-            "intent": [
-              {
-                "action": "android.intent.action.VIEW",
-                "data": {
-                  "scheme": "tel"
-                }
-              }
-            ]
-          },
-          {
-            "intent": [
-              {
-                "action": "android.intent.action.SENDTO",
-                "data": {
-                  "scheme": "mailto"
-                }
-              }
-            ]
-          },
-          {
-            "intent": [
-              {
-                "action": "android.intent.action.VIEW",
-                "data": {
-                  "scheme": "mailto"
-                }
-              }
-            ]
-          },
-          {
-            "intent": [
-              {
-                "action": "android.intent.action.VIEW",
-                "data": {
-                  "scheme": "whatsapp"
-                }
-              }
-            ]
-          }
-        ]
-      },
-=======
->>>>>>> 682d4167d5f343590a902178bd532752590d7e32
       "intentFilters": [
         {
           "action": "VIEW",
