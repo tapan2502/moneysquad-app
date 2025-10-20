@@ -11,7 +11,7 @@ export default function MenuTab() {
     React.useCallback(() => {
       openSidebar();
       setTimeout(() => {
-        router.replace('/(tabs)/');
+        router.replace('/(tabs)' as any);
       }, 100);
     }, [openSidebar, router])
   );
