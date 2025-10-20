@@ -12,7 +12,7 @@ import {
   Image,
 } from "react-native"
 import { useDispatch, useSelector } from "react-redux"
-import { X, LogOut, ChevronRight, User, HelpCircle, Package, Users } from "lucide-react-native"
+import { X, LogOut, ChevronRight, User, CircleHelp as HelpCircle, Package, Users } from "lucide-react-native"
 import { useRouter } from "expo-router"
 import type { RootState } from "../../redux/store"
 import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice"
