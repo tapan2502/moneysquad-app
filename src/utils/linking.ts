@@ -1,5 +1,5 @@
 // src/utils/linking.ts
-import { Linking, Alert } from 'react-native';
+import { Linking, Platform, Alert } from 'react-native';
 
 /**
  * Safely open a URL with proper error handling for APK builds
@@ -10,16 +10,19 @@ export const openURLSafe = async (url: string, errorMessage?: string): Promise<b
     // Check if the URL can be opened
     const supported = await Linking.canOpenURL(url);
 
-    if (!supported) {
-      console.warn(`[Linking] canOpenURL returned false for "${url}". Attempting openURL directly.`);
+    if (supported) {
+      await Linking.openURL(url);
+      return true;
+    } else {
+      if (errorMessage) {
+        Alert.alert('Cannot Open', errorMessage);
+      }
+      return false;
     }
-
-    await Linking.openURL(url);
-    return true;
   } catch (error) {
     console.error('Error opening URL:', error);
     if (errorMessage) {
-      Alert.alert('Cannot Open', errorMessage);
+      Alert.alert('Error', errorMessage);
     }
     return false;
   }

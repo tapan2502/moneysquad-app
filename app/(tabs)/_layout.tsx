@@ -132,6 +132,7 @@ export default function TabLayout() {
 
       <Tabs.Screen
         name="offers"
+<<<<<<< HEAD
         options={{
           title: "Offers",
           tabBarIcon: ({ focused }) => (
@@ -159,6 +160,40 @@ export default function TabLayout() {
           title: "My Team",
           tabBarIcon: ({ focused }) => (
             <Users size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+=======
+        options={{
+          title: "Offers",
+          tabBarIcon: ({ focused }) => (
+            <Gift size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+>>>>>>> 682d4167d5f343590a902178bd532752590d7e32
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: focused ? "#00B9AE" : "#FFFFFF",
+                marginTop: 4,
+                letterSpacing: 0.2,
+              }}
+            >
+<<<<<<< HEAD
+              My Team
+            </Text>
+          ),
+=======
+              Offers
+            </Text>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="team"
+        options={{
+          title: "My Team",
+          tabBarIcon: ({ focused }) => (
+            <Users size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
           ),
           tabBarLabel: ({ focused }) => (
             <Text
@@ -173,6 +208,28 @@ export default function TabLayout() {
               My Team
             </Text>
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="support"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="product-info"
+        options={{
+          href: null,
+>>>>>>> 682d4167d5f343590a902178bd532752590d7e32
         }}
       />
     </Tabs>

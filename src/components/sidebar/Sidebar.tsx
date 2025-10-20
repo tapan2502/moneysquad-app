@@ -56,15 +56,6 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
   }, [visible, progress]);
 
   useEffect(() => {
-    return () => {
-      if (logoutTimer.current) {
-        clearTimeout(logoutTimer.current);
-        logoutTimer.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     if (localVisible && !userData) {
       dispatch(fetchUserData() as any);
     }

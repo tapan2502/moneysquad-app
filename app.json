@@ -18,6 +18,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "usesCleartextTraffic": true,
+<<<<<<< HEAD
       "manifest": {
         "queries": [
           {
@@ -72,6 +73,8 @@
           }
         ]
       },
+=======
+>>>>>>> 682d4167d5f343590a902178bd532752590d7e32
       "intentFilters": [
         {
           "action": "VIEW",

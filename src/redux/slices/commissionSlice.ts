@@ -140,18 +140,8 @@ export const fetchDisbursedLeads = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await apiClient.get('/commission/get-payout');
-      console.log(
-        '[Commission Slice] Disbursed leads API response sample:',
-        JSON.stringify(response.data.data?.[0], null, 2)
-      );
-      console.log(
-        '[Commission Slice] First lead IDs - _id:',
-        response.data.data?.[0]?._id,
-        'leadId:',
-        response.data.data?.[0]?.leadId,
-        'lead_Id:',
-        response.data.data?.[0]?.lead_Id
-      );
+      console.log('[Commission Slice] Disbursed leads API response sample:', JSON.stringify(response.data.data?.[0], null, 2));
+      console.log('[Commission Slice] First lead IDs - _id:', response.data.data?.[0]?._id, 'leadId:', response.data.data?.[0]?.leadId, 'lead_Id:', response.data.data?.[0]?.lead_Id);
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch disbursed leads');
@@ -171,20 +161,15 @@ export const fetchMonthlyBreakdown = createAsyncThunk(
   }
 );
 
-// NOTE: The argument here is the id we pass from the list (now using row _id).
 export const fetchPayoutDetails = createAsyncThunk(
   'commission/fetchPayoutDetails',
-  async (id: string, { rejectWithValue }) => {
+  async (leadUserId: string, { rejectWithValue }) => {
     try {
-      if (!id) {
-        console.warn('[Commission Slice] fetchPayoutDetails called with empty id');
-        return rejectWithValue('Missing id');
-      }
-      console.log('[Commission Slice] Fetching payout details for id:', id);
-      const response = await apiClient.get(`/commission/payout-details/${id}`);
+      console.log('[Commission Slice] Fetching payout details for leadUserId:', leadUserId);
+      const response = await apiClient.get(`/commission/payout-details/${leadUserId}`);
       console.log('[Commission Slice] Payout details response:', response.data);
 
-      if (response.data?.success && response.data?.data) {
+      if (response.data.success && response.data.data) {
         console.log('[Commission Slice] Payout details fetched successfully:', response.data.data);
         return response.data.data;
       } else {
@@ -258,7 +243,7 @@ const commissionSlice = createSlice({
         state.payoutDetailsError = null;
         console.log('[Commission Slice Reducer] Payout details request started');
       })
-      .addCase(fetchPayoutDetails.fulfilled, (state, action: PayloadAction<PayoutDetails>) => {
+      .addCase(fetchPayoutDetails.fulfilled, (state, action) => {
         state.isPayoutDetailsLoading = false;
         state.payoutDetails = action.payload;
         console.log('[Commission Slice Reducer] Payout details loaded successfully:', action.payload);

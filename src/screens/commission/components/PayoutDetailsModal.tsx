@@ -16,25 +16,33 @@ import { formatCurrency } from '../utils/comissionUtils';
 type Props = {
   visible: boolean;
   onClose: () => void;
-  leadId: string | null;
+  leadUserId: string;
 };
 
-const PayoutDetailsModal: React.FC<Props> = ({ visible, onClose, leadId }) => {
+const PayoutDetailsModal: React.FC<Props> = ({ visible, onClose, leadUserId }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { payoutDetails, isPayoutDetailsLoading, payoutDetailsError } = useSelector(
     (state: RootState) => state.commission
   );
 
-  useEffect(() => {
-    if (visible && leadId) {
-      dispatch(fetchPayoutDetails(leadId));
-    }
-  }, [visible, leadId, dispatch]);
+  console.log('[PayoutDetailsModal] Render - visible:', visible, 'leadUserId:', leadUserId);
+  console.log('[PayoutDetailsModal] Redux state - loading:', isPayoutDetailsLoading, 'error:', payoutDetailsError, 'data:', payoutDetails);
 
   useEffect(() => {
-    if (!visible) {
-      dispatch(clearPayoutDetails());
+    console.log('[PayoutDetailsModal] Effect triggered - visible:', visible, 'leadUserId:', leadUserId);
+    if (visible && leadUserId) {
+      console.log('[PayoutDetailsModal] Dispatching fetchPayoutDetails for leadUserId:', leadUserId);
+      dispatch(fetchPayoutDetails(leadUserId));
     }
+  }, [visible, leadUserId, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      if (!visible) {
+        console.log('[PayoutDetailsModal] Modal closed - cleaning up payout details');
+        dispatch(clearPayoutDetails());
+      }
+    };
   }, [visible, dispatch]);
 
   return (
@@ -89,24 +97,20 @@ const PayoutDetailsModal: React.FC<Props> = ({ visible, onClose, leadId }) => {
                   {formatCurrency(payoutDetails.netPayout)}
                 </Text>
               </View>
-              {payoutDetails.remark ? (
+              {payoutDetails.remark && (
                 <View style={styles.remarkBlock}>
                   <Text style={styles.remarkLabel}>Remark</Text>
                   <Text style={styles.remarkText}>{payoutDetails.remark}</Text>
                 </View>
-              ) : null}
-              {payoutDetails.commissionRemark ? (
+              )}
+              {payoutDetails.commissionRemark && (
                 <View style={styles.remarkBlock}>
                   <Text style={styles.remarkLabel}>Commission Remark</Text>
                   <Text style={styles.remarkText}>{payoutDetails.commissionRemark}</Text>
                 </View>
-              ) : null}
+              )}
             </View>
-          ) : (
-            <View style={styles.modalLoading}>
-              <Text style={styles.loadingText}>Select a lead to view payout details</Text>
-            </View>
-          )}
+          ) : null}
         </View>
       </View>
     </Modal>

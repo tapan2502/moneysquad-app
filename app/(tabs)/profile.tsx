@@ -11,11 +11,11 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronDown, ArrowLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import type { RootState } from "../src/redux/store";
-import { fetchUserData, isPartnerUser } from "../src/redux/slices/userDataSlice";
-import ProfileCard from "../src/components/sidebar/ProfileCard";
-import BankingCard from "../src/components/sidebar/BankingCard";
-import DocumentsRow from "../src/components/sidebar/DocumentsRow";
+import type { RootState } from "../../src/redux/store";
+import { fetchUserData, isPartnerUser } from "../../src/redux/slices/userDataSlice";
+import ProfileCard from "../../src/components/sidebar/ProfileCard";
+import BankingCard from "../../src/components/sidebar/BankingCard";
+import DocumentsRow from "../../src/components/sidebar/DocumentsRow";
 
 const ProfileScreen: React.FC = () => {
   const dispatch = useDispatch();
@@ -61,6 +61,7 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" strokeWidth={2.5} />
@@ -78,6 +79,7 @@ const ProfileScreen: React.FC = () => {
 
         <BankingCard bank={userData.bankDetails} />
 
+        {/* Documents accordion */}
         <TouchableOpacity
           onPress={() => setDocsOpen((v) => !v)}
           activeOpacity={0.9}
@@ -97,6 +99,7 @@ const ProfileScreen: React.FC = () => {
         </TouchableOpacity>
         {docsOpen ? <DocumentsRow documents={userData.documents} /> : null}
 
+        {/* Note */}
         <View style={styles.note}>
           <View style={styles.noteHeader}>
             <View style={styles.noteIconContainer}>
@@ -163,6 +166,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
+
+  // Document Accordion
   accHeader: {
     marginTop: 16,
     borderWidth: 1,
@@ -192,6 +197,8 @@ const styles = StyleSheet.create({
   },
   docIconText: { fontSize: 14 },
   accTitle: { fontSize: 15, fontWeight: "800", color: "#0F172A", flex: 1 },
+
+  // Note
   note: {
     marginTop: 16,
     backgroundColor: "#FFFBEB",
@@ -216,6 +223,8 @@ const styles = StyleSheet.create({
   noteTitle: { fontSize: 14, fontWeight: "800", color: "#92400E" },
   noteText: { fontSize: 13, color: "#78350F", lineHeight: 18, marginLeft: 34 },
   noteLink: { fontWeight: "900", color: "#00B9AE", textDecorationLine: "underline" },
+
+  // Loading/Error States
   loadingContainer: {
     flex: 1,
     alignItems: "center",

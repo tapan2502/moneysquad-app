@@ -9,96 +9,89 @@ interface DashboardHeaderProps {
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onSidebarPress }) => {
-  // Burst controls the full BG takeover. 0 = calm, 1 = burst
-  const burst = useRef(new Animated.Value(0)).current
-
-  // Subtle pill pulse synced with burst
-  const pillScale = useRef(new Animated.Value(1)).current
-  const pillOpacity = useRef(new Animated.Value(1)).current
-
-  // Ambient base background breathing (very light)
-  const baseCycle = useRef(new Animated.Value(0)).current
+  const animatedValue = useRef(new Animated.Value(0)).current
+  const scaleAnim = useRef(new Animated.Value(1)).current
+  const opacityAnim = useRef(new Animated.Value(0.3)).current
 
   useEffect(() => {
-    // Light ambient breathing (background base only; driver off for color interpolation safety)
-    const baseLoop = Animated.loop(
+    Animated.loop(
       Animated.sequence([
-        Animated.timing(baseCycle, { toValue: 1, duration: 4000, useNativeDriver: false, easing: Easing.inOut(Easing.quad) }),
-        Animated.timing(baseCycle, { toValue: 0, duration: 4000, useNativeDriver: false, easing: Easing.inOut(Easing.quad) }),
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: false,
+        }),
       ])
-    )
-    baseLoop.start()
+    ).start()
 
-    // Auto burst every few seconds
-    const id = setInterval(() => {
-      runBurst()
-    }, 6000)
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
 
-    return () => {
-      baseLoop.stop()
-      clearInterval(id)
-    }
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacityAnim, {
+          toValue: 0.6,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0.3,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
   }, [])
 
-  const runBurst = () => {
-    // BG overlay
-    Animated.sequence([
-      Animated.timing(burst, { toValue: 1, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.delay(250),
-      Animated.timing(burst, { toValue: 0, duration: 450, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-    ]).start()
-
-    // Pill pulse (why: visual tie-in to the burst)
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(pillScale, { toValue: 1.06, duration: 300, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.timing(pillScale, { toValue: 1, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-      ]),
-      Animated.sequence([
-        Animated.timing(pillOpacity, { toValue: 0.9, duration: 300, useNativeDriver: true }),
-        Animated.timing(pillOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      ]),
-    ]).start()
-  }
-
-  // Very subtle base tint shift
-  const baseBg = baseCycle.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["#F8F9FA", "#FFF7ED"],
+  const backgroundColor = animatedValue.interpolate({
+    inputRange: [0, 0.25, 0.5, 0.75, 1],
+    outputRange: [
+      "#F8F9FA",
+      "#FFF7ED",
+      "#FEF3C7",
+      "#FFF7ED",
+      "#F8F9FA",
+    ],
   })
-
-  // Gradient overlay slides in a bit to feel dynamic during the burst
-  const overlayOpacity = burst
-  const overlayTranslate = burst.interpolate({ inputRange: [0, 1], outputRange: [0, 18] })
 
   const handleSearchPress = () => {
     console.log("Search pressed")
   }
 
   return (
-    <Animated.View style={[styles.container, { backgroundColor: baseBg as any }]}>
+    <Animated.View style={[styles.container, { backgroundColor }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
 
-      {/* FULL BG takeover during burst */}
       <Animated.View
-        pointerEvents="none"
         style={[
-          StyleSheet.absoluteFill,
-          { opacity: overlayOpacity, transform: [{ translateY: overlayTranslate }] },
+          styles.animatedOverlay,
+          {
+            opacity: opacityAnim,
+            transform: [{ scale: scaleAnim }],
+          },
         ]}
       >
         <LinearGradient
-          // Premium but bold; feel free to tweak
-          colors={["#00B9AE", "#22D3EE", "#F59E0B"]}
+          colors={["rgba(251, 191, 36, 0.15)", "rgba(0, 185, 174, 0.15)", "rgba(251, 191, 36, 0.15)"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-        {/* Soft vignette for depth */}
-        <LinearGradient
-          colors={["rgba(0,0,0,0.08)", "rgba(0,0,0,0)"]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
       </Animated.View>
@@ -116,23 +109,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onSidebarPress }) => 
               resizeMode="contain"
             />
           </View>
-
-          {/* Refer + text; tap to manually burst */}
-          <AnimatedTouchable
-            activeOpacity={0.85}
-            onPress={runBurst}
-            style={[
-              styles.referTextContainer,
-              { transform: [{ scale: pillScale }], opacity: pillOpacity },
-            ]}
-          >
+          <Animated.View style={[styles.referTextContainer, { opacity: opacityAnim }]}>
             <Sparkles size={12} color="#F59E0B" strokeWidth={2.5} />
             <Text style={styles.referText}>Refer & Earn</Text>
-            <View style={styles.dot} />
-            <Text style={styles.partnerText}>Partner</Text>
-            <View style={styles.dot} />
             <Text style={styles.comingSoonText}>Coming Soon</Text>
-          </AnimatedTouchable>
+          </Animated.View>
         </View>
 
         <TouchableOpacity style={styles.iconButton} onPress={handleSearchPress} activeOpacity={0.7}>
@@ -161,6 +142,9 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
   },
+  animatedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
   content: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -185,7 +169,7 @@ const styles = StyleSheet.create({
   },
   centerContent: {
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   logoContainer: {
     width: 40,
@@ -209,13 +193,13 @@ const styles = StyleSheet.create({
   referTextContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 14,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(251,191,36,0.35)",
+    borderColor: "rgba(251, 191, 36, 0.3)",
   },
   referText: {
     fontSize: 10,
@@ -223,23 +207,31 @@ const styles = StyleSheet.create({
     color: "#F59E0B",
     letterSpacing: 0.3,
   },
-  partnerText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#0F766E",
-    letterSpacing: 0.2,
-  },
   comingSoonText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "600",
     color: "#92400E",
     letterSpacing: 0.2,
   },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: "rgba(17,24,39,0.18)",
+  searchButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
 })
 

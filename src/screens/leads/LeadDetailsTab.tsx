@@ -2,11 +2,10 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Animated, TouchableOpacity } from 'react-native';
 import { openPhoneDialer, openEmailClient } from '@/src/utils/linking';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   MapPin, Phone, Mail, Building2, DollarSign, Calendar,
-  CreditCard, Landmark, Percent, CalendarClock, FileText, 
-  User, Briefcase, TrendingUp
+  CreditCard, Users, Target, TrendingUp, Briefcase, Landmark,
+  Percent, CalendarClock, FileText, User, PhoneCall, MailIcon
 } from 'lucide-react-native';
 import { Lead } from '@/src/redux/slices/leadsSlice';
 
@@ -15,16 +14,16 @@ const safeLower = (v: unknown) => (typeof v === 'string' ? v : '').toLowerCase()
 const getStatusColor = (status?: string) => {
   switch (safeLower(status)) {
     case 'new lead':
-    case 'new_lead':   return '#3B82F6';
-    case 'assigned':   return '#F59E0B';
-    case 'pending':    return '#8B5CF6';
-    case 'login':      return '#06B6D4';
-    case 'approved':   return '#10B981';
-    case 'disbursed':  return '#059669';
-    case 'rejected':   return '#EF4444';
-    case 'closed':     return '#6B7280';
-    case 'expired':    return '#DC2626';
-    default:           return '#6B7280';
+    case 'new_lead': return '#3B82F6';
+    case 'assigned': return '#F59E0B';
+    case 'pending': return '#8B5CF6';
+    case 'login': return '#06B6D4';
+    case 'approved': return '#10B981';
+    case 'disbursed': return '#059669';
+    case 'rejected': return '#EF4444';
+    case 'closed': return '#6B7280';
+    case 'expired': return '#DC2626';
+    default: return '#6B7280';
   }
 };
 
@@ -40,8 +39,8 @@ const formatDate = (d?: string, withTime = true) => {
 const formatCurrency = (amount?: number) => {
   if (typeof amount !== 'number' || Number.isNaN(amount)) return '₹0';
   if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
-  if (amount >= 100000)   return `₹${(amount / 100000).toFixed(1)}L`;
-  if (amount >= 1000)     return `₹${(amount / 1000).toFixed(1)}K`;
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+  if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
   return `₹${amount.toLocaleString()}`;
 };
 
@@ -53,7 +52,6 @@ type Props = {
 const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
   const statusColor = useMemo(() => getStatusColor(lead.status), [lead.status]);
   const monogram = (lead?.applicantName || '?').trim().charAt(0).toUpperCase();
-  const type = (lead?.loan?.type || '—').replace(/_/g, ' ');
 
   return (
     <ScrollView
@@ -62,7 +60,7 @@ const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
       onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
       scrollEventThrottle={16}
     >
-      {/* Header Card */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={[styles.avatar, { backgroundColor: statusColor }]}>
@@ -82,61 +80,36 @@ const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
 
         {/* Action Buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => openPhoneDialer(lead.mobile)}
-            activeOpacity={0.7}
           >
-            <Phone size={18} color="#FFFFFF" strokeWidth={2.5} />
+            <Phone size={18} color="#FFFFFF" />
             <Text style={styles.actionText}>Call</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnSecondary]}
             onPress={() => openEmailClient(lead.email)}
-            activeOpacity={0.7}
           >
-            <Mail size={18} color="#4F46E5" strokeWidth={2.5} />
+            <Mail size={18} color="#4F46E5" />
             <Text style={styles.actionTextSecondary}>Email</Text>
           </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Loan Details */}
-      <View style={styles.card}>
-        <View style={styles.grid}>
-          <View style={styles.gridItem}>
-            <DollarSign size={20} color="#0EA5E9" strokeWidth={2.5} />
-            <Text style={styles.gridLabel}>Loan Amount</Text>
-            <Text style={styles.gridValue}>{formatCurrency(lead?.loan?.amount)}</Text>
-          </View>
-          <View style={styles.gridItem}>
-            <CreditCard size={20} color="#8B5CF6" strokeWidth={2.5} />
-            <Text style={styles.gridLabel}>Type</Text>
-            <Text style={styles.gridValue}>{type}</Text>
-          </View>
-          <View style={styles.gridItem}>
-            <MapPin size={20} color="#F59E0B" strokeWidth={2.5} />
-            <Text style={styles.gridLabel}>Location</Text>
-            <Text style={styles.gridValue}>{lead?.pincode?.city || '—'}</Text>
-          </View>
         </View>
       </View>
 
       {/* Contact Details */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Contact Details</Text>
-        <View style={styles.list}>
-          <Row icon={<Phone size={18} color="#64748B" />} label="Mobile" value={lead.mobile || '—'} />
-          <Row icon={<Mail size={18} color="#64748B" />} label="Email" value={lead.email || '—'} />
-          <Row 
-            icon={<MapPin size={18} color="#64748B" />} 
-            label="Address" 
-            value={`${lead?.pincode?.city || '—'}, ${lead?.pincode?.state || '—'}${lead.pincode?.pincode ? ` • ${lead.pincode.pincode}` : ''}`} 
-          />
-          {lead.businessName && (
-            <Row icon={<Building2 size={18} color="#64748B" />} label="Business" value={lead.businessName} />
-          )}
-        </View>
+        <Row icon={<Phone size={18} color="#64748B" />} label="Mobile" value={lead.mobile || '—'} />
+        <Row icon={<Mail size={18} color="#64748B" />} label="Email" value={lead.email || '—'} />
+        <Row
+          icon={<MapPin size={18} color="#64748B" />}
+          label="Address"
+          value={`${lead?.pincode?.city || '—'}, ${lead?.pincode?.state || '—'}${lead.pincode?.pincode ? ` • ${lead.pincode.pincode}` : ''}`}
+        />
+        {lead.businessName && (
+          <Row icon={<Building2 size={18} color="#64748B" />} label="Business" value={lead.businessName} />
+        )}
       </View>
 
       {/* Manager Details */}
@@ -153,17 +126,17 @@ const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
               )}
             </View>
             <View style={styles.managerActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.iconBtn}
                 onPress={() => openPhoneDialer(lead.manager?.mobile)}
               >
-                <Phone size={20} color="#4F46E5" strokeWidth={2.5} />
+                <Phone size={20} color="#4F46E5" />
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.iconBtn}
                 onPress={() => openEmailClient(lead.manager?.email)}
               >
-                <Mail size={20} color="#4F46E5" strokeWidth={2.5} />
+                <Mail size={20} color="#4F46E5" />
               </TouchableOpacity>
             </View>
           </View>
@@ -174,48 +147,16 @@ const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Disbursement Details</Text>
         {lead.disbursedData ? (
-          <View style={styles.list}>
-            <Row 
-              icon={<DollarSign size={18} color="#64748B" />} 
-              label="Amount" 
-              value={formatCurrency(lead.disbursedData.loanAmount)} 
-            />
-            <Row 
-              icon={<CalendarClock size={18} color="#64748B" />} 
-              label="Tenure" 
-              value={`${lead.disbursedData.tenureMonths || 0} months`} 
-            />
-            <Row 
-              icon={<Percent size={18} color="#64748B" />} 
-              label="Interest Rate" 
-              value={`${lead.disbursedData.interestRatePA || 0}% p.a.`} 
-            />
-            <Row 
-              icon={<FileText size={18} color="#64748B" />} 
-              label="Processing Fee" 
-              value={`${lead.disbursedData.processingFee || 0}%`} 
-            />
-            <Row 
-              icon={<DollarSign size={18} color="#64748B" />} 
-              label="Insurance" 
-              value={formatCurrency(lead.disbursedData.insuranceCharges)} 
-            />
-            <Row 
-              icon={<Briefcase size={18} color="#64748B" />} 
-              label="Scheme" 
-              value={lead.disbursedData.loanScheme || '—'} 
-            />
-            <Row 
-              icon={<FileText size={18} color="#64748B" />} 
-              label="LAN Number" 
-              value={lead.disbursedData.lanNumber || '—'} 
-            />
-            <Row 
-              icon={<Calendar size={18} color="#64748B" />} 
-              label="Disbursed Date" 
-              value={formatDate(lead.disbursedData.actualDisbursedDate, false)} 
-            />
-          </View>
+          <>
+            <Row label="Amount" value={formatCurrency(lead.disbursedData.loanAmount)} icon={<DollarSign size={18} color="#64748B" />} />
+            <Row label="Tenure" value={`${lead.disbursedData.tenureMonths || 0} months`} icon={<CalendarClock size={18} color="#64748B" />} />
+            <Row label="Interest Rate" value={`${lead.disbursedData.interestRatePA || 0}% p.a.`} icon={<Percent size={18} color="#64748B" />} />
+            <Row label="Processing Fee" value={`${lead.disbursedData.processingFee || 0}%`} icon={<FileText size={18} color="#64748B" />} />
+            <Row label="Insurance" value={formatCurrency(lead.disbursedData.insuranceCharges)} icon={<DollarSign size={18} color="#64748B" />} />
+            <Row label="Scheme" value={lead.disbursedData.loanScheme || '—'} icon={<Briefcase size={18} color="#64748B" />} />
+            <Row label="LAN Number" value={lead.disbursedData.lanNumber || '—'} icon={<FileText size={18} color="#64748B" />} />
+            <Row label="Disbursed Date" value={formatDate(lead.disbursedData.actualDisbursedDate, false)} icon={<Calendar size={18} color="#64748B" />} />
+          </>
         ) : (
           <View style={styles.empty}>
             <Landmark size={32} color="#CBD5E1" />
@@ -258,7 +199,7 @@ const LeadDetailsTab: React.FC<Props> = ({ lead, scrollY }) => {
   );
 };
 
-/* Components */
+/* -------------------- Reusable Components -------------------- */
 const Row: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
   <View style={styles.row}>
     <View style={styles.rowLeft}>
@@ -269,218 +210,43 @@ const Row: React.FC<{ icon: React.ReactNode; label: string; value: string }> = (
   </View>
 );
 
-/* Styles */
+/* -------------------- Styles -------------------- */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
-
-  // Header
-  header: {
-    backgroundColor: '#FFF',
-    padding: 16,
-    gap: 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFF',
-  },
+  header: { backgroundColor: '#FFF', padding: 16, gap: 16 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontSize: 20, fontWeight: '700', color: '#FFF' },
   headerInfo: { flex: 1 },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  id: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  status: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-
-  // Actions
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#4F46E5',
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  actionBtnSecondary: {
-    backgroundColor: '#F1F5F9',
-  },
-  actionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  actionTextSecondary: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#4F46E5',
-  },
-
-  // Card
-  card: {
-    backgroundColor: '#FFF',
-    marginTop: 12,
-    padding: 16,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 16,
-  },
-
-  // Grid
-  grid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  gridItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-  },
-  gridLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  gridValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-    textAlign: 'center',
-  },
-
-  // List
-  list: { gap: 12 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  rowLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  rowValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
-    textAlign: 'right',
-  },
-
-  // Manager
-  managerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  name: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  id: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 10, fontWeight: '700' },
+  actions: { flexDirection: 'row', gap: 12 },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#4F46E5', paddingVertical: 14, borderRadius: 12 },
+  actionBtnSecondary: { backgroundColor: '#F1F5F9' },
+  actionText: { fontSize: 15, fontWeight: '600', color: '#FFF' },
+  actionTextSecondary: { fontSize: 15, fontWeight: '600', color: '#4F46E5' },
+  card: { backgroundColor: '#FFF', marginTop: 12, padding: 16 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginBottom: 16 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 8 },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rowLabel: { fontSize: 14, color: '#64748B', fontWeight: '500' },
+  rowValue: { fontSize: 14, fontWeight: '600', color: '#0F172A', textAlign: 'right' },
+  managerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   managerInfo: { flex: 1 },
-  managerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0F172A',
-  },
-  managerId: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  managerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Timeline
+  managerName: { fontSize: 16, fontWeight: '600', color: '#0F172A' },
+  managerId: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  managerActions: { flexDirection: 'row', gap: 8 },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
   timeline: { gap: 16 },
-  timelineItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  timelineLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 2,
-  },
-  timelineValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
-  },
-
-  // Empty State
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-
-  // Comment
-  comment: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
-  },
+  timelineItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  timelineLabel: { fontSize: 12, color: '#64748B' },
+  timelineValue: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
+  empty: { alignItems: 'center', paddingVertical: 32, gap: 8 },
+  emptyText: { fontSize: 14, color: '#94A3B8' },
+  comment: { fontSize: 14, color: '#475569', lineHeight: 20 },
 });
 
 export default LeadDetailsTab;
