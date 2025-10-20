@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router"
 import { View, Text } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Users, LayoutDashboard, Gift, DollarSign } from "lucide-react-native"
+import { Menu, LayoutDashboard, Gift, DollarSign, Users } from "lucide-react-native"
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
@@ -150,6 +150,36 @@ export default function TabLayout() {
               Offers
             </Text>
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="menu"
+        options={{
+          title: "Menu",
+          tabBarIcon: ({ focused }) => (
+            <Menu size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: focused ? "#00B9AE" : "#FFFFFF",
+                marginTop: 4,
+                letterSpacing: 0.2,
+              }}
+            >
+              Menu
+            </Text>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="team"
+        options={{
+          href: null,
         }}
       />
 
