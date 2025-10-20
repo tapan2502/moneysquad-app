@@ -1,13 +1,24 @@
+import { useCallback } from "react"
 import { Tabs } from "expo-router"
 import { View, Text } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Menu, LayoutDashboard, Gift, DollarSign, Users } from "lucide-react-native"
+import { useSidebar } from "@/src/components/sidebar/SidebarProvider"
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
   const bottomInset = insets.bottom || 0
   const paddingBottom = Math.max(bottomInset + 8, 16)
   const tabHeight = 72 + bottomInset
+  const { openSidebar } = useSidebar()
+
+  const handleMenuTabPress = useCallback(
+    (event: { preventDefault: () => void }) => {
+      event.preventDefault()
+      openSidebar()
+    },
+    [openSidebar],
+  )
 
   return (
     <Tabs
@@ -155,6 +166,32 @@ export default function TabLayout() {
 
       <Tabs.Screen
         name="menu"
+        options={{
+          title: "Menu",
+          tabBarIcon: ({ focused }) => (
+            <Menu size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: focused ? "#00B9AE" : "#FFFFFF",
+                marginTop: 4,
+                letterSpacing: 0.2,
+              }}
+            >
+              Menu
+            </Text>
+          ),
+        }}
+        listeners={() => ({
+          tabPress: handleMenuTabPress,
+        })}
+      />
+
+      <Tabs.Screen
+        name="profile"
         options={{
           title: "Menu",
           tabBarIcon: ({ focused }) => (

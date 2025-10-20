@@ -73,6 +73,7 @@ const FunnelSection: React.FC<FunnelSectionProps> = ({ stages, isLoading }) => {
     }, [stageAnim, widthAnim, index, stage.conversionPct]);
 
     const stageColor = getStageColor(index);
+    const displayCount = stage.currentCount > 0 ? stage.currentCount : stage.count;
 
     return (
       <Animated.View 
@@ -84,7 +85,7 @@ const FunnelSection: React.FC<FunnelSectionProps> = ({ stages, isLoading }) => {
         <View style={styles.stageHeader}>
           <Text style={styles.stageName}>{stage.name}</Text>
           <View style={styles.stageStats}>
-            <Text style={styles.stageCount}>{stage.currentCount}</Text>
+            <Text style={styles.stageCount}>{displayCount}</Text>
             <Text style={styles.conversionPct}>{stage.conversionPct.toFixed(1)}%</Text>
           </View>
         </View>

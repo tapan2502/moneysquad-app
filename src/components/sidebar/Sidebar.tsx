@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react"
 import {
   Modal,
   Animated,
@@ -10,57 +10,50 @@ import {
   Text,
   ScrollView,
   Image,
-} from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  X,
-  LogOut,
-  ChevronRight,
-  User,
-  HelpCircle,
-  Package,
-  Users
-} from "lucide-react-native";
-import { useRouter } from "expo-router";
-import type { RootState } from "../../redux/store";
-import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice";
-import { logout } from "../../redux/slices/authSlice";
+} from "react-native"
+import { useDispatch, useSelector } from "react-redux"
+import { X, LogOut, ChevronRight, User, HelpCircle, Package, Users } from "lucide-react-native"
+import { useRouter, usePathname } from "expo-router"
+import type { RootState } from "../../redux/store"
+import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice"
+import { logout } from "../../redux/slices/authSlice"
 
-type Props = { visible: boolean; onClose: () => void };
+type Props = { visible: boolean; onClose: () => void }
 
 const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
-  const dispatch = useDispatch();
-  const router = useRouter();
-  const { userData, loading } = useSelector((s: RootState) => s.userData);
+  const dispatch = useDispatch()
+  const router = useRouter()
+  const pathname = usePathname()
+  const { userData, loading } = useSelector((s: RootState) => s.userData)
 
-  const [localVisible, setLocalVisible] = useState(visible);
-  const progress = useRef(new Animated.Value(0)).current;
-  const logoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [localVisible, setLocalVisible] = useState(visible)
+  const progress = useRef(new Animated.Value(0)).current
+  const logoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (visible) {
-      setLocalVisible(true);
+      setLocalVisible(true)
       Animated.timing(progress, {
         toValue: 1,
         duration: 280,
         easing: Easing.bezier(0.25, 0.1, 0.25, 1),
         useNativeDriver: true,
-      }).start();
+      }).start()
     } else {
       Animated.timing(progress, {
         toValue: 0,
         duration: 240,
         easing: Easing.bezier(0.42, 0, 0.58, 1),
         useNativeDriver: true,
-      }).start(() => setLocalVisible(false));
+      }).start(() => setLocalVisible(false))
     }
-  }, [visible, progress]);
+  }, [visible, progress])
 
   useEffect(() => {
     if (localVisible && !userData) {
-      dispatch(fetchUserData() as any);
+      dispatch(fetchUserData() as any)
     }
-  }, [localVisible, userData, dispatch]);
+  }, [localVisible, userData, dispatch])
 
   const requestClose = () => {
     Animated.timing(progress, {
@@ -68,36 +61,38 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
       duration: 240,
       easing: Easing.bezier(0.42, 0, 0.58, 1),
       useNativeDriver: true,
-    }).start(() => onClose());
-  };
+    }).start(() => onClose())
+  }
 
   const onLogoutPress = () => {
-    requestClose();
+    requestClose()
     logoutTimer.current = setTimeout(() => {
-      dispatch(logout());
-      logoutTimer.current = null;
-    }, 320);
-  };
+      dispatch(logout())
+      logoutTimer.current = null
+    }, 320)
+  }
 
-  const handleNavigation = (route: string) => {
-    requestClose();
+  const handleNavigation = (path: string) => {
+    requestClose()
     setTimeout(() => {
-      router.push(route as any);
-    }, 250);
-  };
+      if (pathname !== path) {
+        router.push(path as any)
+      }
+    }, 250)
+  }
 
-  const isPartner = userData && isPartnerUser(userData);
+  const isPartner = userData && isPartnerUser(userData)
 
-  if (!localVisible) return null;
+  if (!localVisible) return null
 
   const backdropOpacity = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.7],
-  });
+  })
   const translateX = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [-280, 0],
-  });
+  })
 
   return (
     <Modal transparent visible={localVisible} onRequestClose={requestClose} statusBarTranslucent>
@@ -136,15 +131,17 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                 <View style={styles.profileSection}>
                   <View style={styles.avatarContainer}>
                     <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {userData.name?.charAt(0).toUpperCase() || "U"}
-                      </Text>
+                      <Text style={styles.avatarText}>{userData.name?.charAt(0).toUpperCase() || "U"}</Text>
                     </View>
                     <View style={styles.onlineBadge} />
                   </View>
                   <View style={styles.userInfo}>
-                    <Text style={styles.userName} numberOfLines={1}>{userData.name}</Text>
-                    <Text style={styles.userEmail} numberOfLines={1}>{userData.email}</Text>
+                    <Text style={styles.userName} numberOfLines={1}>
+                      {userData.name}
+                    </Text>
+                    <Text style={styles.userEmail} numberOfLines={1}>
+                      {userData.email}
+                    </Text>
                     <View style={styles.userIdContainer}>
                       <Text style={styles.userIdLabel}>ID:</Text>
                       <Text style={styles.userIdValue}>{userData.partnerId}</Text>
@@ -170,7 +167,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={Users}
                     title="My Team"
                     subtitle="Manage associates"
-                    onPress={() => handleNavigation("/(tabs)/team")}
+                    onPress={() => handleNavigation("/team")}
                   />
                   <MenuItem
                     icon={HelpCircle}
@@ -209,8 +206,8 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
         </Animated.View>
       </View>
     </Modal>
-  );
-};
+  )
+}
 
 type MenuItemProps = {
   icon: React.ComponentType<any>;
