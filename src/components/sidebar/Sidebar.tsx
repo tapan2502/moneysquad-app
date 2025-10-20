@@ -160,7 +160,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={User}
                     title="Profile"
                     subtitle="Your details"
-                    onPress={() => handleNavigation("/(tabs)/profile")}
+                    onPress={() => handleNavigation("/profile")}
                   />
                 </View>
 
@@ -176,13 +176,13 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={HelpCircle}
                     title="Support"
                     subtitle="Help & resources"
-                    onPress={() => handleNavigation("/(tabs)/support")}
+                    onPress={() => handleNavigation("/support")}
                   />
                   <MenuItem
                     icon={Package}
                     title="Products"
                     subtitle="Our offerings"
-                    onPress={() => handleNavigation("/(tabs)/product-info")}
+                    onPress={() => handleNavigation("/product-info")}
                   />
                 </View>
 
