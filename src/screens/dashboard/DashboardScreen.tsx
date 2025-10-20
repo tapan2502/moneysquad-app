@@ -18,12 +18,12 @@ import MatrixSection from './components/MatrixSection';
 import FunnelSection from './components/FunnelSection';
 import RejectionReasonsSection from './components/RejectionReasonsSection';
 import { Snackbar } from 'react-native-paper';
-import Sidebar from '../../components/sidebar/Sidebar';
+import { useSidebar } from '../../components/sidebar/SidebarProvider';
 
 const DashboardScreen: React.FC = () => {
   const dispatch = useDispatch();
   const [selectedPeriod, setSelectedPeriod] = useState('6');
-  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const { openSidebar } = useSidebar();
   const { 
     snapshot, 
     snapshotLoading,
@@ -84,17 +84,9 @@ const DashboardScreen: React.FC = () => {
     dispatch(clearError());
   };
 
-  const handleSidebarPress = () => {
-    setSidebarVisible(true);
-  };
-
-  const handleCloseSidebar = () => {
-    setSidebarVisible(false);
-  };
-
   return (
     <View style={styles.container}>
-      <DashboardHeader onSidebarPress={handleSidebarPress} />
+      <DashboardHeader onSidebarPress={openSidebar} />
       
       <ScrollView
         style={styles.scrollView}
@@ -145,10 +137,6 @@ const DashboardScreen: React.FC = () => {
         {error}
       </Snackbar>
 
-      <Sidebar 
-        visible={sidebarVisible} 
-        onClose={handleCloseSidebar} 
-      />
     </View>
   );
 };

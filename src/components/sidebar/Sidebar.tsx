@@ -18,7 +18,8 @@ import {
   ChevronRight,
   User,
   HelpCircle,
-  Package
+  Package,
+  Users
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { RootState } from "../../redux/store";
@@ -81,7 +82,12 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
   const handleNavigation = (screen: string) => {
     requestClose();
     setTimeout(() => {
-      navigation.navigate(screen);
+      const parentNav = (navigation as any)?.getParent?.();
+      if (parentNav) {
+        parentNav.navigate(screen);
+      } else {
+        navigation.navigate(screen);
+      }
     }, 250);
   };
 
@@ -165,6 +171,12 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
 
                 <View style={styles.menuGroup}>
                   <Text style={styles.menuGroupTitle}>RESOURCES</Text>
+                  <MenuItem
+                    icon={Users}
+                    title="My Team"
+                    subtitle="Manage associates"
+                    onPress={() => handleNavigation("Team")}
+                  />
                   <MenuItem
                     icon={HelpCircle}
                     title="Support"

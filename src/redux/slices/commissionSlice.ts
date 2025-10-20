@@ -55,7 +55,7 @@ export interface DisbursedLead {
   };
   disbursedId: {
     _id: string;
-    leadUserId: string; // present, but we are now using the row's _id primarily
+    leadUserId: string; // still available if the API switches back to lead user keyed lookups
     loanAmount: number;
     tenureMonths: number;
     interestRatePA: number;
@@ -163,10 +163,10 @@ export const fetchMonthlyBreakdown = createAsyncThunk(
 
 export const fetchPayoutDetails = createAsyncThunk(
   'commission/fetchPayoutDetails',
-  async (leadUserId: string, { rejectWithValue }) => {
+  async (disbursedLeadId: string, { rejectWithValue }) => {
     try {
-      console.log('[Commission Slice] Fetching payout details for leadUserId:', leadUserId);
-      const response = await apiClient.get(`/commission/payout-details/${leadUserId}`);
+      console.log('[Commission Slice] Fetching payout details for disbursedLeadId:', disbursedLeadId);
+      const response = await apiClient.get(`/commission/payout-details/${disbursedLeadId}`);
       console.log('[Commission Slice] Payout details response:', response.data);
 
       if (response.data.success && response.data.data) {

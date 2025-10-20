@@ -16,25 +16,25 @@ import { formatCurrency } from '../utils/comissionUtils';
 type Props = {
   visible: boolean;
   onClose: () => void;
-  leadUserId: string;
+  disbursedLeadId: string | null;
 };
 
-const PayoutDetailsModal: React.FC<Props> = ({ visible, onClose, leadUserId }) => {
+const PayoutDetailsModal: React.FC<Props> = ({ visible, onClose, disbursedLeadId }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { payoutDetails, isPayoutDetailsLoading, payoutDetailsError } = useSelector(
     (state: RootState) => state.commission
   );
 
-  console.log('[PayoutDetailsModal] Render - visible:', visible, 'leadUserId:', leadUserId);
+  console.log('[PayoutDetailsModal] Render - visible:', visible, 'disbursedLeadId:', disbursedLeadId);
   console.log('[PayoutDetailsModal] Redux state - loading:', isPayoutDetailsLoading, 'error:', payoutDetailsError, 'data:', payoutDetails);
 
   useEffect(() => {
-    console.log('[PayoutDetailsModal] Effect triggered - visible:', visible, 'leadUserId:', leadUserId);
-    if (visible && leadUserId) {
-      console.log('[PayoutDetailsModal] Dispatching fetchPayoutDetails for leadUserId:', leadUserId);
-      dispatch(fetchPayoutDetails(leadUserId));
+    console.log('[PayoutDetailsModal] Effect triggered - visible:', visible, 'disbursedLeadId:', disbursedLeadId);
+    if (visible && disbursedLeadId) {
+      console.log('[PayoutDetailsModal] Dispatching fetchPayoutDetails for disbursedLeadId:', disbursedLeadId);
+      dispatch(fetchPayoutDetails(disbursedLeadId));
     }
-  }, [visible, leadUserId, dispatch]);
+  }, [visible, disbursedLeadId, dispatch]);
 
   useEffect(() => {
     return () => {

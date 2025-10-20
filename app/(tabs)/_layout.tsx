@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router"
 import { View, Text } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Users, Chrome as Home, Gift, DollarSign } from "lucide-react-native"
+import { Users, LayoutDashboard, Gift, DollarSign } from "lucide-react-native"
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
@@ -111,7 +111,7 @@ export default function TabLayout() {
                 borderColor: "#000000",
               }}
             >
-              <Home size={26} color="#FFFFFF" strokeWidth={2.2} />
+              <LayoutDashboard size={26} color="#FFFFFF" strokeWidth={2.2} />
             </View>
           ),
           tabBarLabel: ({ focused }) => (
@@ -132,7 +132,6 @@ export default function TabLayout() {
 
       <Tabs.Screen
         name="offers"
-<<<<<<< HEAD
         options={{
           title: "Offers",
           tabBarIcon: ({ focused }) => (
@@ -149,63 +148,6 @@ export default function TabLayout() {
               }}
             >
               Offers
-            </Text>
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="team"
-        options={{
-          title: "My Team",
-          tabBarIcon: ({ focused }) => (
-            <Users size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
-=======
-        options={{
-          title: "Offers",
-          tabBarIcon: ({ focused }) => (
-            <Gift size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
->>>>>>> 682d4167d5f343590a902178bd532752590d7e32
-          ),
-          tabBarLabel: ({ focused }) => (
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 4,
-                letterSpacing: 0.2,
-              }}
-            >
-<<<<<<< HEAD
-              My Team
-            </Text>
-          ),
-=======
-              Offers
-            </Text>
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="team"
-        options={{
-          title: "My Team",
-          tabBarIcon: ({ focused }) => (
-            <Users size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
-          ),
-          tabBarLabel: ({ focused }) => (
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 4,
-                letterSpacing: 0.2,
-              }}
-            >
-              My Team
             </Text>
           ),
         }}
@@ -229,7 +171,6 @@ export default function TabLayout() {
         name="product-info"
         options={{
           href: null,
->>>>>>> 682d4167d5f343590a902178bd532752590d7e32
         }}
       />
     </Tabs>

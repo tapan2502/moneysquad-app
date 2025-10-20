@@ -1,11 +1,6 @@
 import React, { memo, useMemo, useState } from "react"
-<<<<<<< HEAD
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from "react-native"
-import { Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Eye } from "lucide-react-native"
-=======
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Modal, ActivityIndicator } from "react-native"
-import { Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Eye, X as XIcon } from "lucide-react-native"
->>>>>>> 682d4167d5f343590a902178bd532752590d7e32
+import { Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from "lucide-react-native"
 import { formatCurrency, formatDate, getStatusColor, getCurrentMonthKey, getMonthKey, formatMonthLabel, sortMonthKeysDesc } from "../utils/comissionUtils"
 import { DisbursedLead } from "@/src/redux/slices/commissionSlice"
 import CustomDropdown from "@/src/components/CustomDropdown"
@@ -31,42 +26,19 @@ const getStatusIcon = (status?: string) => {
 }
 
 // UPI-like compact row: left (title/subtitle), right (amounts/status)
-<<<<<<< HEAD
-const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (leadId: string) => void }) => {
-=======
-const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (leadUserId: string) => void }) => {
->>>>>>> 682d4167d5f343590a902178bd532752590d7e32
+const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (disbursedLeadId: string) => void }) => {
   const StatusIcon = getStatusIcon(item.payoutStatus)
   const statusColor = getStatusColor(item.payoutStatus)
 
   const handlePress = () => {
-<<<<<<< HEAD
     if (!item._id) {
       return
     }
     onViewDetails(item._id)
   }
-=======
-    console.log('[DisbursedLeadsTab Row] ===== DEBUGGING ID FIELDS =====');
-    console.log('[DisbursedLeadsTab Row] item._id:', item._id);
-    console.log('[DisbursedLeadsTab Row] item.leadId:', item.leadId);
-    console.log('[DisbursedLeadsTab Row] item.lead_Id:', item.lead_Id);
-    console.log('[DisbursedLeadsTab Row] item.partner_Id:', item.partner_Id);
-    console.log('[DisbursedLeadsTab Row] item.disbursedId:', item.disbursedId);
-    console.log('[DisbursedLeadsTab Row] item.disbursedId?._id:', item.disbursedId?._id);
-    console.log('[DisbursedLeadsTab Row] item.disbursedId?.leadUserId:', item.disbursedId?.leadUserId);
-    console.log('[DisbursedLeadsTab Row] item.lender?.loan_id:', item.lender?.loan_id);
-    console.log('[DisbursedLeadsTab Row] ===== END DEBUG =====');
-    console.log('[DisbursedLeadsTab Row] Full item:', JSON.stringify(item, null, 2));
-
-    const leadUserId = item.lead_Id;
-    console.log('[DisbursedLeadsTab Row] Using lead_Id:', leadUserId);
-    onViewDetails(leadUserId);
-  };
->>>>>>> 682d4167d5f343590a902178bd532752590d7e32
 
   return (
-    <View style={styles.row}>
+    <TouchableOpacity style={styles.row} onPress={handlePress} activeOpacity={0.85}>
       <View style={styles.left}>
         <Text style={styles.primary}>{item.applicant?.name ?? "-"}</Text>
         <Text style={styles.secondary}>
@@ -88,15 +60,7 @@ const Row = ({ item, onViewDetails }: { item: DisbursedLead; onViewDetails: (lea
           Loan: {formatCurrency(item.disbursedAmount)} • Comm {item.commission}%
         </Text>
       </View>
-
-      <TouchableOpacity
-        style={styles.eyeBtn}
-        onPress={handlePress}
-        activeOpacity={0.7}
-      >
-        <Eye size={18} color="#4F46E5" strokeWidth={2} />
-      </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   )
 }
 
@@ -110,31 +74,16 @@ const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
   const [selectedStatus, setSelectedStatus] = useState<string>("")
   const [selectedAssociate, setSelectedAssociate] = useState<string>("")
   const [payoutModalVisible, setPayoutModalVisible] = useState(false)
-<<<<<<< HEAD
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+  const [selectedDisbursedLeadId, setSelectedDisbursedLeadId] = useState<string | null>(null)
 
-  const handleViewDetails = (leadId: string) => {
-    setSelectedLeadId(leadId)
+  const handleViewDetails = (disbursedLeadId: string) => {
+    setSelectedDisbursedLeadId(disbursedLeadId)
     setPayoutModalVisible(true)
-=======
-  const [selectedLeadUserId, setSelectedLeadUserId] = useState<string>("")
-
-  const handleViewDetails = (leadUserId: string) => {
-    console.log('[DisbursedLeadsTab] handleViewDetails called with leadUserId:', leadUserId);
-    console.log('[DisbursedLeadsTab] leadUserId type:', typeof leadUserId);
-    setSelectedLeadUserId(leadUserId)
-    setPayoutModalVisible(true)
-    console.log('[DisbursedLeadsTab] Modal set to visible with selectedLeadUserId:', leadUserId);
->>>>>>> 682d4167d5f343590a902178bd532752590d7e32
   }
 
   const handleCloseModal = () => {
     setPayoutModalVisible(false)
-<<<<<<< HEAD
-    setSelectedLeadId(null)
-=======
-    setSelectedLeadUserId("")
->>>>>>> 682d4167d5f343590a902178bd532752590d7e32
+    setSelectedDisbursedLeadId(null)
   }
 
   const monthOptions = useMemo(() => {
@@ -293,7 +242,7 @@ const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
       <PayoutDetailsModal
         visible={payoutModalVisible}
         onClose={handleCloseModal}
-        leadUserId={selectedLeadUserId}
+        disbursedLeadId={selectedDisbursedLeadId}
       />
     </View>
   )
@@ -348,13 +297,7 @@ const styles = StyleSheet.create({
     borderColor: "#EEF2F7",
     paddingHorizontal: 8,
   },
-  row: {
-    flexDirection: "row",
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+  row: { flexDirection: "row", paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", justifyContent: "space-between" },
   sep: { height: 1, backgroundColor: "#F1F5F9" },
   left: { flex: 1, paddingRight: 8 },
   right: { alignItems: "flex-end", minWidth: 140 },
@@ -374,15 +317,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   badgeText: { fontSize: 10, fontWeight: "800" },
-  eyeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#EEF2FF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
-  },
   empty: { alignItems: "center", paddingVertical: 48 },
   emptyTitle: { fontSize: 16, fontWeight: "800", color: "#374151" },
   emptySub: { fontSize: 12, color: "#6B7280", marginTop: 4 },
