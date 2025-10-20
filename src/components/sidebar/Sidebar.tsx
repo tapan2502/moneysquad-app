@@ -13,7 +13,7 @@ import {
 } from "react-native"
 import { useDispatch, useSelector } from "react-redux"
 import { X, LogOut, ChevronRight, User, HelpCircle, Package, Users } from "lucide-react-native"
-import { useRouter, usePathname } from "expo-router"
+import { useNavigation } from "@react-navigation/native"
 import type { RootState } from "../../redux/store"
 import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice"
 import { logout } from "../../redux/slices/authSlice"
@@ -22,8 +22,7 @@ type Props = { visible: boolean; onClose: () => void }
 
 const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
   const dispatch = useDispatch()
-  const router = useRouter()
-  const pathname = usePathname()
+  const navigation = useNavigation<any>()
   const { userData, loading } = useSelector((s: RootState) => s.userData)
 
   const [localVisible, setLocalVisible] = useState(visible)
@@ -72,12 +71,10 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
     }, 320)
   }
 
-  const handleNavigation = (path: string) => {
+  const handleNavigation = (screenName: string) => {
     requestClose()
     setTimeout(() => {
-      if (pathname !== path) {
-        router.push(path as any)
-      }
+      navigation.navigate(screenName)
     }, 250)
   }
 
@@ -157,7 +154,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={User}
                     title="Profile"
                     subtitle="Your details"
-                    onPress={() => handleNavigation("/(tabs)/profile")}
+                    onPress={() => handleNavigation("Profile")}
                   />
                 </View>
 
@@ -167,19 +164,19 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={Users}
                     title="My Team"
                     subtitle="Manage associates"
-                    onPress={() => handleNavigation("/(tabs)/team")}
+                    onPress={() => handleNavigation("Team")}
                   />
                   <MenuItem
                     icon={HelpCircle}
                     title="Support"
                     subtitle="Help & resources"
-                    onPress={() => handleNavigation("/(tabs)/support")}
+                    onPress={() => handleNavigation("Support")}
                   />
                   <MenuItem
                     icon={Package}
                     title="Products"
                     subtitle="Our offerings"
-                    onPress={() => handleNavigation("/(tabs)/product-info")}
+                    onPress={() => handleNavigation("ProductInfo")}
                   />
                 </View>
 
