@@ -4,6 +4,7 @@ import { useSelector } from "react-redux"
 import type { RootState } from "../redux/store"
 import { Slot } from "expo-router"
 import { SidebarProvider } from "../components/sidebar/SidebarProvider"
+import type { AuthenticatedStackParamList } from "./types"
 
 // Screens
 import SplashScreen from "../screens/SplashScreen"
@@ -20,23 +21,28 @@ import ProfileScreen from "../screens/profile/ProfileScreen"
 import SupportScreen from "../screens/support/SupportScreen"
 import ProductInfoScreen from "../screens/product-info/ProductInfoScreen"
 
-const Stack = createStackNavigator()
+const RootStack = createStackNavigator()
+const AuthenticatedStack = createStackNavigator<AuthenticatedStackParamList>()
+
+const TabsMainWithSidebar: React.FC = () => (
+  <SidebarProvider>
+    <Slot />
+  </SidebarProvider>
+)
 
 const TabsWithStack = () => (
-  <SidebarProvider>
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="TabsMain" component={Slot} />
-      <Stack.Screen name="LeadDetails" component={LeadDetailsScreen} />
-      <Stack.Screen name="CreateLead" component={CreateLeadScreen} />
-      <Stack.Screen name="OfferDetails" component={OfferDetailsScreen} />
-      <Stack.Screen name="CreateAssociate" component={CreateAssociateScreen} />
-      <Stack.Screen name="EditAssociate" component={CreateAssociateScreen} />
-      <Stack.Screen name="Team" component={TeamScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="Support" component={SupportScreen} />
-      <Stack.Screen name="ProductInfo" component={ProductInfoScreen} />
-    </Stack.Navigator>
-  </SidebarProvider>
+  <AuthenticatedStack.Navigator screenOptions={{ headerShown: false }}>
+    <AuthenticatedStack.Screen name="TabsMain" component={TabsMainWithSidebar} />
+    <AuthenticatedStack.Screen name="LeadDetails" component={LeadDetailsScreen} />
+    <AuthenticatedStack.Screen name="CreateLead" component={CreateLeadScreen} />
+    <AuthenticatedStack.Screen name="OfferDetails" component={OfferDetailsScreen} />
+    <AuthenticatedStack.Screen name="CreateAssociate" component={CreateAssociateScreen} />
+    <AuthenticatedStack.Screen name="EditAssociate" component={CreateAssociateScreen} />
+    <AuthenticatedStack.Screen name="Team" component={TeamScreen} />
+    <AuthenticatedStack.Screen name="Profile" component={ProfileScreen} />
+    <AuthenticatedStack.Screen name="Support" component={SupportScreen} />
+    <AuthenticatedStack.Screen name="ProductInfo" component={ProductInfoScreen} />
+  </AuthenticatedStack.Navigator>
 )
 
 const AppNavigator: React.FC = () => {
@@ -48,18 +54,18 @@ const AppNavigator: React.FC = () => {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
-        <Stack.Screen name="(tabs)" component={TabsWithStack} />
+        <RootStack.Screen name="(tabs)" component={TabsWithStack} />
       ) : (
         <>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-          <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
-          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <RootStack.Screen name="Login" component={LoginScreen} />
+          <RootStack.Screen name="Register" component={RegisterScreen} />
+          <RootStack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+          <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </>
       )}
-    </Stack.Navigator>
+    </RootStack.Navigator>
   )
 }
 

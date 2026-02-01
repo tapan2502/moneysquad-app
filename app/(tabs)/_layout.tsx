@@ -1,25 +1,25 @@
 import { useCallback } from "react"
 import { Tabs } from "expo-router"
-import { View, Text } from "react-native"
+import { View, Text, Platform } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LayoutDashboard, Gift, DollarSign, Users } from "lucide-react-native"
 import { useSidebar } from "@/src/components/sidebar/SidebarProvider"
+import { BlurView } from "expo-blur"
 
 const MenuIcon = ({ focused }: { focused: boolean }) => {
-  const barColor = focused ? "#00B9AE" : "#FFFFFF"
+  const barColor = focused ? "#00B9AE" : "#A0A0A0"
 
   return (
     <View style={{ width: 24, height: 24, justifyContent: "center", alignItems: "center" }}>
-      <View style={{ gap: 4, alignItems: "center" }}>
+      <View style={{ gap: 3.5, alignItems: "center" }}>
         {[0, 1, 2].map((idx) => (
           <View
             key={idx}
             style={{
-              width: idx === 1 ? 18 : 16,
-              height: 3,
+              width: idx === 1 ? 17 : 15,
+              height: 2.5,
               borderRadius: 12,
               backgroundColor: barColor,
-              opacity: focused ? 1 : 0.9,
             }}
           />
         ))}
@@ -31,8 +31,8 @@ const MenuIcon = ({ focused }: { focused: boolean }) => {
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
   const bottomInset = insets.bottom || 0
-  const paddingBottom = Math.max(bottomInset + 8, 16)
-  const tabHeight = 72 + bottomInset
+  const paddingBottom = Math.max(bottomInset, 8)
+  const tabHeight = 68 + bottomInset
   const { openSidebar } = useSidebar()
 
   const handleMenuTabPress = useCallback(
@@ -48,28 +48,33 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#00B9AE",
-        tabBarInactiveTintColor: "#FFFFFF",
+        tabBarInactiveTintColor: "#A0A0A0",
         tabBarStyle: {
-          backgroundColor: "#000000",
-          borderTopWidth: 0,
+          position: "absolute",
+          backgroundColor: Platform.OS === "ios" ? "rgba(0, 0, 0, 0.85)" : "#0A0A0A",
+          borderTopWidth: 0.5,
+          borderTopColor: "rgba(255, 255, 255, 0.08)",
           height: tabHeight,
           paddingBottom,
-          paddingTop: 8,
+          paddingTop: 10,
+          paddingHorizontal: 8,
           shadowColor: "#000",
           shadowOffset: {
             width: 0,
-            height: -4,
+            height: -8,
           },
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
-          elevation: 8,
+          shadowOpacity: 0.25,
+          shadowRadius: 20,
+          elevation: 20,
         },
         tabBarLabelStyle: {
-          fontSize: 10, // Reduced default font size
+          fontSize: 10,
           fontWeight: "600",
-          marginTop: 6,
-          letterSpacing: 0.1,
-          color: "#FFFFFF",
+          marginTop: 4,
+          letterSpacing: 0.3,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
         },
       }}
     >
@@ -78,16 +83,32 @@ export default function TabLayout() {
         options={{
           title: "Leads",
           tabBarIcon: ({ focused }) => (
-            <Users size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+            <View
+              style={{
+                width: 48,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: focused ? "rgba(0, 185, 174, 0.15)" : "transparent",
+                justifyContent: "center",
+                alignItems: "center",
+                transform: [{ scale: focused ? 1 : 0.95 }],
+              }}
+            >
+              <Users 
+                size={22} 
+                color={focused ? "#00B9AE" : "#A0A0A0"} 
+                strokeWidth={focused ? 2.5 : 2} 
+              />
+            </View>
           ),
           tabBarLabel: ({ focused }) => (
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 4,
-                letterSpacing: 0.2,
+                fontSize: 10,
+                fontWeight: focused ? "700" : "600",
+                color: focused ? "#00B9AE" : "#A0A0A0",
+                marginTop: 2,
+                letterSpacing: 0.3,
               }}
             >
               Leads
@@ -101,16 +122,32 @@ export default function TabLayout() {
         options={{
           title: "Earnings",
           tabBarIcon: ({ focused }) => (
-            <DollarSign size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+            <View
+              style={{
+                width: 48,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: focused ? "rgba(0, 185, 174, 0.15)" : "transparent",
+                justifyContent: "center",
+                alignItems: "center",
+                transform: [{ scale: focused ? 1 : 0.95 }],
+              }}
+            >
+              <DollarSign 
+                size={22} 
+                color={focused ? "#00B9AE" : "#A0A0A0"} 
+                strokeWidth={focused ? 2.5 : 2} 
+              />
+            </View>
           ),
           tabBarLabel: ({ focused }) => (
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 4,
-                letterSpacing: 0.2,
+                fontSize: 10,
+                fontWeight: focused ? "700" : "600",
+                color: focused ? "#00B9AE" : "#A0A0A0",
+                marginTop: 2,
+                letterSpacing: 0.3,
               }}
             >
               Earnings
@@ -126,36 +163,41 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <View
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
-                backgroundColor: focused ? "#00B9AE" : "#1A1A1A",
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: focused ? "#00B9AE" : "#1F1F1F",
                 justifyContent: "center",
                 alignItems: "center",
-                marginTop: -28 - bottomInset * 0.2,
+                marginTop: -24 - bottomInset * 0.15,
                 shadowColor: focused ? "#00B9AE" : "#000",
                 shadowOffset: {
                   width: 0,
-                  height: 8,
+                  height: focused ? 12 : 8,
                 },
-                shadowOpacity: focused ? 0.4 : 0.3,
-                shadowRadius: 16,
-                elevation: 12,
-                borderWidth: 3,
-                borderColor: "#000000",
+                shadowOpacity: focused ? 0.5 : 0.3,
+                shadowRadius: focused ? 20 : 12,
+                elevation: focused ? 16 : 12,
+                borderWidth: 4,
+                borderColor: Platform.OS === "ios" ? "rgba(0, 0, 0, 0.85)" : "#0A0A0A",
+                transform: [{ scale: focused ? 1.05 : 1 }],
               }}
             >
-              <LayoutDashboard size={26} color="#FFFFFF" strokeWidth={2.2} />
+              <LayoutDashboard 
+                size={24} 
+                color={focused ? "#FFFFFF" : "#A0A0A0"} 
+                strokeWidth={focused ? 2.5 : 2} 
+              />
             </View>
           ),
           tabBarLabel: ({ focused }) => (
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 4,
-                letterSpacing: 0.2,
+                fontSize: 10,
+                fontWeight: focused ? "700" : "600",
+                color: focused ? "#00B9AE" : "#A0A0A0",
+                marginTop: 2,
+                letterSpacing: 0.3,
               }}
             >
               Home
@@ -169,16 +211,32 @@ export default function TabLayout() {
         options={{
           title: "Offers",
           tabBarIcon: ({ focused }) => (
-            <Gift size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
+            <View
+              style={{
+                width: 48,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: focused ? "rgba(0, 185, 174, 0.15)" : "transparent",
+                justifyContent: "center",
+                alignItems: "center",
+                transform: [{ scale: focused ? 1 : 0.95 }],
+              }}
+            >
+              <Gift 
+                size={22} 
+                color={focused ? "#00B9AE" : "#A0A0A0"} 
+                strokeWidth={focused ? 2.5 : 2} 
+              />
+            </View>
           ),
           tabBarLabel: ({ focused }) => (
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 4,
-                letterSpacing: 0.2,
+                fontSize: 10,
+                fontWeight: focused ? "700" : "600",
+                color: focused ? "#00B9AE" : "#A0A0A0",
+                marginTop: 2,
+                letterSpacing: 0.3,
               }}
             >
               Offers
@@ -191,15 +249,29 @@ export default function TabLayout() {
         name="menu"
         options={{
           title: "Menu",
-          tabBarIcon: ({ focused }) => <MenuIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <View
+              style={{
+                width: 48,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: focused ? "rgba(0, 185, 174, 0.12)" : "transparent",
+                justifyContent: "center",
+                alignItems: "center",
+                transform: [{ scale: focused ? 1 : 0.95 }],
+              }}
+            >
+              <MenuIcon focused={focused} />
+            </View>
+          ),
           tabBarLabel: ({ focused }) => (
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: "600",
-                color: focused ? "#00B9AE" : "#FFFFFF",
-                marginTop: 4,
-                letterSpacing: 0.2,
+                fontSize: 10,
+                fontWeight: focused ? "700" : "600",
+                color: focused ? "#00B9AE" : "#A0A0A0",
+                marginTop: 2,
+                letterSpacing: 0.3,
               }}
             >
               Menu

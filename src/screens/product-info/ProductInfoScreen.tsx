@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native"
 import * as Clipboard from 'expo-clipboard'
-import { SafeAreaView } from "react-native-safe-area-context"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useDispatch, useSelector } from "react-redux"
 import { LinearGradient } from "expo-linear-gradient"
 import { Snackbar } from "react-native-paper"
@@ -39,6 +39,7 @@ const ProductInfoScreen: React.FC = () => {
   const { productInfo, productInfoLoading, error } = useSelector((s: RootState) => s.resourceAndSupport)
 
   const [activeTab, setActiveTab] = useState<TabKey>("guides")
+  const insets = useSafeAreaInsets()
 
   useEffect(() => {
     dispatch(fetchProductInfo() as any)
@@ -99,7 +100,7 @@ const ProductInfoScreen: React.FC = () => {
       style={styles.tabScroll}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={!!productInfoLoading} onRefresh={handleRefresh} colors={["#4F46E5"]} />}
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingBottom: 24 + insets.bottom }}
     >
       <Text style={styles.title}>Loan Product Guides</Text>
       <Text style={styles.subtitle}>Rates, fees, and key terms—curated per product</Text>
@@ -154,7 +155,7 @@ const ProductInfoScreen: React.FC = () => {
       style={styles.tabScroll}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={!!productInfoLoading} onRefresh={handleRefresh} colors={["#4F46E5"]} />}
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingBottom: 24 + insets.bottom }}
     >
       <Text style={styles.title}>Eligibility Criteria</Text>
       <Text style={styles.subtitle}>Requirements and how we evaluate your application</Text>
@@ -244,7 +245,7 @@ const ProductInfoScreen: React.FC = () => {
       style={styles.tabScroll}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={!!productInfoLoading} onRefresh={handleRefresh} colors={["#4F46E5"]} />}
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingBottom: 24 + insets.bottom }}
     >
       <Text style={styles.title}>Required Documents</Text>
       <Text style={styles.subtitle}>Documents by product category and profile</Text>
@@ -281,7 +282,19 @@ const ProductInfoScreen: React.FC = () => {
 
             {Object.entries(docData?.subcategories ?? {}).map(([sub, docs]: any) => (
               <View key={sub} style={styles.subCard}>
-                <Text style={styles.subTitle} numberOfLines={1}>{sub}</Text>
+                <View style={styles.subHeader}>
+                  <Text style={styles.subTitle} numberOfLines={1}>{sub}</Text>
+                  <TouchableOpacity
+                    onPress={() => handleCopy(
+                      `${category} - ${sub}\n${docs.join('\n')}`,
+                      `${sub}`
+                    )}
+                    style={[styles.copyBtn, styles.subCardCopyBtn]}
+                    activeOpacity={0.7}
+                  >
+                    <Copy size={16} color="#4F46E5" />
+                  </TouchableOpacity>
+                </View>
                 <View style={{ gap: 8 }}>
                   {docs.map((d: string, i: number) => (
                     <View key={i} style={styles.bulletRow}>
@@ -301,7 +314,7 @@ const ProductInfoScreen: React.FC = () => {
   // ---------- Loading Gate ----------
   if (productInfoLoading && !productInfo) {
     return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#0B1020" }}>
+      <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: "#0B1020" }}>
         <LinearGradient colors={["#0B1220", "#111827"]} style={styles.hero}>
           <View style={styles.heroRow}>
             <View style={styles.heroIcon}>
@@ -322,7 +335,7 @@ const ProductInfoScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safe}>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <View style={styles.container}>
         {/* Premium hero header */}
         <LinearGradient
@@ -575,7 +588,8 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginBottom: 10,
   },
-  subTitle: { fontSize: 13, fontWeight: "900", color: "#4F46E5", marginBottom: 8 },
+  subHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  subTitle: { fontSize: 13, fontWeight: "900", color: "#4F46E5" },
 
   // Empty
   emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 22, gap: 6 },
@@ -589,6 +603,11 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  subCardCopyBtn: {
+    backgroundColor: "#EEF2FF",
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
 })
 

@@ -47,32 +47,26 @@ const OffersScreen: React.FC = () => {
     dispatch(fetchAllOffers() as any)
   }, [dispatch])
 
-  const filteredOffers = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return offers
-    return offers.filter(
-      (offer) =>
-        offer.bankName?.toLowerCase().includes(q) ||
-        offer.offerHeadline?.toLowerCase().includes(q) ||
-        offer.loanType?.toLowerCase().includes(q),
-    )
-  }, [offers, searchQuery])
-
-  const handleRefresh = useCallback(() => {
-    dispatch(fetchAllOffers() as any)
-  }, [dispatch])
-
+  // Helper functions - MUST be defined before filteredOffers useMemo
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     if (Number.isNaN(date.getTime())) return "N/A"
     return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
   }
 
-  const isOfferExpired = (validityDate: string) => new Date(validityDate).getTime() < Date.now()
+  // Match web app logic: offers expire AFTER the full day is over (end of day)
+  const isOfferExpired = (validityDate: string) => {
+    const date = new Date(validityDate)
+    // Set to end of day (23:59:59.999) - inclusive by date
+    date.setHours(23, 59, 59, 999)
+    return Date.now() > date.getTime()
+  }
 
   const getDaysUntilExpiry = (validityDate: string) => {
     const today = new Date()
+    today.setHours(0, 0, 0, 0) // Start of today
     const expiry = new Date(validityDate)
+    expiry.setHours(23, 59, 59, 999) // End of expiry day
     const diff = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     return diff
   }
@@ -84,6 +78,46 @@ const OffersScreen: React.FC = () => {
     if (daysLeft <= 7) return { text: `${Math.max(daysLeft, 0)} days left`, color: "#F59E0B", icon: Clock }
     return { text: `${daysLeft} days left`, color: "#10B981", icon: CheckCircle }
   }
+
+  const filteredOffers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    
+    // Add expiry metadata to each offer for sorting
+    const withMeta = offers.map(offer => ({
+      ...offer,
+      _expired: isOfferExpired(offer.offerValidity),
+      _expiryDate: new Date(offer.offerValidity).setHours(23, 59, 59, 999)
+    }))
+    
+    // Filter by search query
+    let filtered = withMeta
+    if (q) {
+      filtered = withMeta.filter(
+        (offer) =>
+          offer.bankName?.toLowerCase().includes(q) ||
+          offer.offerHeadline?.toLowerCase().includes(q) ||
+          offer.loanType?.toLowerCase().includes(q),
+      )
+    }
+    
+    // Sort: non-expired first, then featured first (within non-expired), then by expiry date
+    return filtered.sort((a, b) => {
+      // 1. Non-expired vs expired (non-expired first)
+      if (a._expired !== b._expired) return a._expired ? 1 : -1
+      
+      // 2. Featured vs non-featured (featured first, only for non-expired)
+      if (!a._expired && a.isFeatured !== b.isFeatured) {
+        return a.isFeatured ? -1 : 1
+      }
+      
+      // 3. By expiry date (soonest first)
+      return a._expiryDate - b._expiryDate
+    })
+  }, [offers, searchQuery])
+
+  const handleRefresh = useCallback(() => {
+    dispatch(fetchAllOffers() as any)
+  }, [dispatch])
 
   const handleCopyOffer = async (offer: BankOffer) => {
     const msg = [
@@ -115,8 +149,9 @@ const OffersScreen: React.FC = () => {
     return (
       <Pressable
         accessibilityRole="button"
-        onPress={() => handleViewOffer(item)}
-        style={({ pressed }) => [styles.card, expired && styles.cardExpired, pressed && styles.cardPressed]}
+        onPress={expired ? undefined : () => handleViewOffer(item)}
+        disabled={expired}
+        style={({ pressed }) => [styles.card, expired && styles.cardExpired, !expired && pressed && styles.cardPressed]}
       >
         {/* HERO IMAGE */}
         <View style={styles.heroWrap}>
@@ -204,13 +239,23 @@ const OffersScreen: React.FC = () => {
 
         {/* ACTIONS */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.copyBtn} onPress={() => handleCopyOffer(item)}>
-            <Copy size={14} color="#4F46E5" />
-            <Text style={styles.copyText}>Copy</Text>
+          <TouchableOpacity 
+            style={styles.copyBtn} 
+            onPress={() => handleCopyOffer(item)}
+            disabled={expired}
+          >
+            <Copy size={14} color={expired ? "#9CA3AF" : "#4F46E5"} />
+            <Text style={[styles.copyText, expired && { color: "#9CA3AF" }]}>Copy</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => handleViewOffer(item)}>
-            <Eye size={14} color="#FFFFFF" />
-            <Text style={styles.primaryText}>View Details</Text>
+          <TouchableOpacity 
+            style={[styles.primaryBtn, expired && styles.primaryBtnDisabled]} 
+            onPress={expired ? undefined : () => handleViewOffer(item)}
+            disabled={expired}
+          >
+            <Eye size={14} color={expired ? "#9CA3AF" : "#FFFFFF"} />
+            <Text style={[styles.primaryText, expired && { color: "#9CA3AF" }]}>
+              {expired ? "Expired" : "View Details"}
+            </Text>
           </TouchableOpacity>
         </View>
       </Pressable>
@@ -320,7 +365,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
-  listContent: { padding: 16, paddingBottom: 40, backgroundColor: "#F8FAFC" },
+  listContent: { padding: 16, paddingBottom: 100, backgroundColor: "#F8FAFC" },
 
   card: {
     backgroundColor: "#FFFFFF",
@@ -335,7 +380,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
   },
-  cardExpired: { opacity: 0.75 },
+  cardExpired: { 
+    opacity: 0.6,
+    backgroundColor: '#F9FAFB',
+  },
   cardPressed: { transform: [{ scale: 0.997 }] },
 
   heroWrap: { width: "100%", height: 160, backgroundColor: "#EEF2FF" },
@@ -455,6 +503,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: 6,
+  },
+  primaryBtnDisabled: {
+    backgroundColor: "#E5E7EB",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
   },
   primaryText: { color: "#FFFFFF", fontWeight: "900", fontSize: 13 },
 

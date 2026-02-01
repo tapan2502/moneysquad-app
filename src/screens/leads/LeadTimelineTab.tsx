@@ -1,7 +1,8 @@
 // src/screens/leads/tabs/LeadTimelineTab.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, Dimensions } from 'react-native';
-import { Clock, CheckCircle, AlertCircle, X as XIcon, ImageIcon, ZoomIn } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { Clock, CheckCircle, AlertCircle, ZoomIn, X as XIcon } from 'lucide-react-native';
+import ImagePreviewModal from '../../components/ImagePreviewModal';
 
 const safeLower = (v: unknown) => (typeof v === 'string' ? v : '').toLowerCase();
 
@@ -55,7 +56,7 @@ type Props = {
 };
 
 const LeadTimelineTab: React.FC<Props> = ({ leadTimeline, isTimelineLoading }) => {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ uri: string; title?: string } | null>(null);
 
   if (isTimelineLoading) {
     return (
@@ -114,7 +115,7 @@ const LeadTimelineTab: React.FC<Props> = ({ leadTimeline, isTimelineLoading }) =
               {!!event.rejectImage && (
                 <TouchableOpacity
                   style={styles.imagePreview}
-                  onPress={() => setSelectedImage(event.rejectImage!)}
+                  onPress={() => setSelectedImage({ uri: event.rejectImage!, title: 'Reject Attachment' })}
                   activeOpacity={0.7}
                 >
                   <Image
@@ -134,40 +135,12 @@ const LeadTimelineTab: React.FC<Props> = ({ leadTimeline, isTimelineLoading }) =
       })}
       <View style={{ height: 16 }} />
 
-      {/* Full Screen Image Modal */}
-      <Modal
-        visible={!!selectedImage}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectedImage(null)}
-      >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity
-            style={styles.modalCloseArea}
-            activeOpacity={1}
-            onPress={() => setSelectedImage(null)}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Reject Image</Text>
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
-                onPress={() => setSelectedImage(null)}
-              >
-                <XIcon size={24} color="#fff" strokeWidth={2.5} />
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-          {selectedImage && (
-            <View style={styles.modalImageContainer}>
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.fullImage}
-                resizeMode="contain"
-              />
-            </View>
-          )}
-        </View>
-      </Modal>
+      <ImagePreviewModal
+        visible={!!selectedImage?.uri}
+        uri={selectedImage?.uri}
+        title={selectedImage?.title}
+        onClose={() => setSelectedImage(null)}
+      />
     </ScrollView>
   );
 };
@@ -226,42 +199,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     fontWeight: '700',
-  },
-
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
-  },
-  modalCloseArea: {
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#fff',
-  },
-  modalCloseBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalImageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  fullImage: {
-    width: Dimensions.get('window').width - 40,
-    height: Dimensions.get('window').height - 200,
   },
 });
 

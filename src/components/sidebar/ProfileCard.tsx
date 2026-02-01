@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { User, Mail, Phone, MapPin, Calendar } from "lucide-react-native";
 
 type UserType = {
@@ -66,7 +66,12 @@ const Row = ({
 
 const Divider = () => <View style={styles.divider} />;
 
-const ProfileCard = ({ user }: { user: UserType }) => {
+type ProfileCardProps = {
+  user: UserType;
+  onImagePress?: (uri: string, title?: string) => void;
+};
+
+const ProfileCard = ({ user, onImagePress }: ProfileCardProps) => {
   const dob = formatDate(user?.personalInfo?.dateOfBirth);
   const initials =
     user?.basicInfo?.fullName
@@ -84,7 +89,16 @@ const ProfileCard = ({ user }: { user: UserType }) => {
       <View style={styles.card}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.avatarWrap}>
+          <TouchableOpacity
+            style={styles.avatarWrap}
+            activeOpacity={user?.documents?.profilePhoto ? 0.85 : 1}
+            onPress={() => {
+              if (user?.documents?.profilePhoto) {
+                onImagePress?.(user.documents.profilePhoto, "Profile Photo");
+              }
+            }}
+            accessibilityRole={user?.documents?.profilePhoto ? "button" : undefined}
+          >
             {user?.documents?.profilePhoto ? (
               <Image source={{ uri: user.documents.profilePhoto }} style={styles.avatar} />
             ) : (
@@ -93,7 +107,7 @@ const ProfileCard = ({ user }: { user: UserType }) => {
                 <Text style={styles.avatarInitials}>{initials}</Text>
               </View>
             )}
-          </View>
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{user?.basicInfo?.fullName || "Unknown User"}</Text>
 

@@ -54,7 +54,7 @@ const SnapshotSection: React.FC<SnapshotSectionProps> = ({ snapshot, isLoading }
 
   const formatPercentage = (percentage: number) => {
     const sign = percentage >= 0 ? '+' : '';
-    return `${sign}${percentage.toFixed(1)}%`;
+    return `${sign}${percentage.toFixed(2)}%`;
   };
 
   const getTrendColor = (percentage: number) => {

@@ -14,6 +14,7 @@ import {
 import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice"
 import { DollarSign } from "lucide-react-native"
 import { Snackbar } from "react-native-paper"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 // 👇 paths match your screenshot (one “m” → comission)
 import DisbursedLeadsTab from "./components/DisbursedLeadsTab"
@@ -22,6 +23,7 @@ import ComissionGridTab from "./components/ComissionGridTab"
 
 const CommissionScreen: React.FC = () => {
   const dispatch = useDispatch()
+  const insets = useSafeAreaInsets()
 
   const {
     commissionData,
@@ -32,7 +34,7 @@ const CommissionScreen: React.FC = () => {
     error,
   } = useSelector((state: RootState) => state.commission)
 
-  const { userData, isLoading: isUserLoading } = useSelector((state: RootState) => state.userData)
+  const { userData, loading: isUserLoading } = useSelector((state: RootState) => state.userData)
 
   const [activeTab, setActiveTab] = useState<"disbursed" | "payout" | "commission">("disbursed")
 
@@ -58,7 +60,7 @@ const CommissionScreen: React.FC = () => {
     !!userData && isPartnerUser(userData) ? userData.commissionPlan || "gold" : "gold"
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom + 8, 78) }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

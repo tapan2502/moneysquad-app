@@ -1,71 +1,13 @@
 // src/utils/api.ts
 import axios, { AxiosRequestConfig } from 'axios';
-import { Platform, Alert } from 'react-native';
-import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { secureStorage } from './secureStorage';
 
-/** ===== Force-override (DEV only) =====
- * Set this to your LAN IP to always use it during development.
- * Leave it empty string "" to disable the hard override.
- */
-const FORCE_DEV_IP_BASE = 'https://api.moneysquad.in/api';      // <- your IP (with /api)
-
-const HTTPS_FALLBACK_BASE = 'https://api.moneysquad.in/api';        // <- your HTTPS fallback
-
 /**
- * ===== Base URL selection =====
- * Priority:
- * 0) FORCE_DEV_IP_BASE (if set and __DEV__)
- * 1) EXPO_PUBLIC_API_BASE_URL
- * 2) Dev: infer host for emulator / device and use DEV_PORT
- * 3) Prod: HTTPS_FALLBACK_BASE
+ * ===== Production API Base URL =====
+ * Single source of truth for all API requests
  */
-const DEV_PORT = Number(process.env.EXPO_PUBLIC_API_PORT || 5003);
-
-const getReachableHost = () => {
-  const expoHost = Constants.expoConfig?.hostUri?.split(':')?.[0];
-  if (expoHost && expoHost !== 'localhost' && expoHost !== '127.0.0.1') {
-    return expoHost;
-  }
-  if (Platform.OS === 'android') return '10.0.2.2';
-  return 'localhost';
-};
-
-const computeBaseURL = () => {
-  // 0) Hard override in DEV
-  if (__DEV__ && FORCE_DEV_IP_BASE.trim()) {
-    return FORCE_DEV_IP_BASE.replace(/\/+$/, '');
-  }
-
-  // 1) Env override
-  const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
-  if (envUrl) return envUrl.replace(/\/+$/, '');
-
-  // 2) Infer for dev
-  if (__DEV__) {
-    const host = getReachableHost();
-    return `http://${host}:${DEV_PORT}/api`;
-  }
-
-  // 3) Fallback (prod)
-  return HTTPS_FALLBACK_BASE;
-};
-
-const BASE_URL = computeBaseURL();
-
-// ---- Diagnostics ----
-console.log('🌐 [API CONFIG] Base URL:', BASE_URL);
-console.log('🌐 [API CONFIG] Platform:', Platform.OS);
-console.log('🌐 [API CONFIG] Dev mode:', __DEV__);
-console.log('🌐 [API CONFIG] Expo hostUri:', Constants.expoConfig?.hostUri);
-
-// TEMP: show exactly what release is using (remove later if you want)
-if (!__DEV__) {
-  setTimeout(() => {
-    try { Alert.alert('BASE_URL', BASE_URL); } catch {}
-    try { console.error('BASE_URL:', BASE_URL); } catch {}
-  }, 400);
-}
+const BASE_URL = 'https://api.moneysquad.in/api';
 
 // ---- Axios instance ----
 const apiClient = axios.create({
@@ -75,12 +17,6 @@ const apiClient = axios.create({
   maxBodyLength: Infinity as any,
   maxContentLength: Infinity as any,
 });
-
-// ===== Smart HTTPS fallback (APK builds) =====
-// If we are in release AND baseURL is the IP/HTTP, on "Network Error" switch to HTTPS and retry once.
-let _switchedToHttps = false;
-const _isRelease = !__DEV__;
-const _ipHttpBase = 'http://178.236.185.178:5003/api';
 
 // ---- Helpers ----
 const isFormData = (data: any): boolean =>
@@ -125,7 +61,7 @@ apiClient.interceptors.request.use(
         if (Array.isArray(parts)) {
           console.log('📋 [API REQUEST] FormData keys:', parts.map((p: any) => p?.[0]));
         }
-      } catch {}
+      } catch { }
     } else {
       if (!('Content-Type' in headers) && !('content-type' in headers)) {
         headers['Content-Type'] = 'application/json';
@@ -140,6 +76,12 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+// ---- Logout Callback Registry ----
+let logoutCallback: (() => void) | null = null;
+export const registerLogoutCallback = (cb: () => void) => {
+  logoutCallback = cb;
+};
 
 apiClient.interceptors.response.use(
   (response) => {
@@ -168,32 +110,6 @@ apiClient.interceptors.response.use(
       platform: Platform.OS,
     });
 
-    // ===== Automatic HTTPS fallback & retry (release only) =====
-    const isNetworkError =
-      !error.response && !!error.request && (error.message?.includes('Network Error') || error.code === 'ECONNABORTED');
-
-    const wasUsingIpHttp =
-      typeof error.config?.baseURL === 'string' &&
-      error.config.baseURL.startsWith(_ipHttpBase);
-
-    if (_isRelease && isNetworkError && wasUsingIpHttp && !_switchedToHttps) {
-      try {
-        _switchedToHttps = true;
-        apiClient.defaults.baseURL = HTTPS_FALLBACK_BASE; // switch globally
-        const retryConfig = { ...error.config, baseURL: HTTPS_FALLBACK_BASE };
-        console.warn('🔁 [API FALLBACK] Switching to HTTPS and retrying once:', {
-          newBase: HTTPS_FALLBACK_BASE,
-          url: retryConfig.url,
-        });
-        try { Alert.alert('API Fallback', `Switched to HTTPS:\n${HTTPS_FALLBACK_BASE}`); } catch {}
-        const retryResp = await apiClient.request(retryConfig);
-        return retryResp;
-      } catch (retryErr) {
-        console.error('🔴 [API FALLBACK] HTTPS retry failed:', retryErr);
-        // fall through to existing error handling
-      }
-    }
-
     if (error.response) {
       const message = error.response?.data?.message || error.response?.data?.error;
       if (message === 'No remarks found for this leadId') {
@@ -208,6 +124,10 @@ apiClient.interceptors.response.use(
       if (message === 'Invalid token' || message === 'Account is inactive') {
         console.warn('🚪 [API AUTH] Clearing token due to auth error');
         await secureStorage.removeItem('token');
+        if (logoutCallback) {
+          console.log('🚪 [API AUTH] Triggering logout callback');
+          logoutCallback();
+        }
       }
     } else if (error.request) {
       console.error('🌐 [API NETWORK ERROR] No response received (possible networking / host / timeout issue).');

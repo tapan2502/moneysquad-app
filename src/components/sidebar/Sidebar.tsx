@@ -17,6 +17,7 @@ import { useRouter } from "expo-router"
 import type { RootState } from "../../redux/store"
 import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice"
 import { logout } from "../../redux/slices/authSlice"
+import type { AuthenticatedStackParamList } from "../../navigation/types"
 
 type Props = { visible: boolean; onClose: () => void }
 
@@ -71,9 +72,10 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
     }, 320)
   }
 
-  const handleNavigation = (path: string) => {
+  const handleNavigation = (routeName: "Profile" | "Support" | "ProductInfo" | "Team") => {
     requestClose()
     setTimeout(() => {
+      const path = `/${routeName.toLowerCase().replace("info", "-info")}`
       router.push(path as any)
     }, 250)
   }
@@ -154,7 +156,7 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={User}
                     title="Profile"
                     subtitle="Your details"
-                    onPress={() => handleNavigation("/profile")}
+                    onPress={() => handleNavigation("Profile")}
                   />
                 </View>
 
@@ -164,19 +166,19 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                     icon={Users}
                     title="My Team"
                     subtitle="Manage associates"
-                    onPress={() => handleNavigation("/team")}
+                    onPress={() => handleNavigation("Team")}
                   />
                   <MenuItem
                     icon={HelpCircle}
                     title="Support"
                     subtitle="Help & resources"
-                    onPress={() => handleNavigation("/support")}
+                    onPress={() => handleNavigation("Support")}
                   />
                   <MenuItem
                     icon={Package}
                     title="Products"
                     subtitle="Our offerings"
-                    onPress={() => handleNavigation("/product-info")}
+                    onPress={() => handleNavigation("ProductInfo")}
                   />
                 </View>
 

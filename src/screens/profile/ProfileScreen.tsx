@@ -16,12 +16,14 @@ import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice";
 import ProfileCard from "../../components/sidebar/ProfileCard";
 import BankingCard from "../../components/sidebar/BankingCard";
 import DocumentsRow from "../../components/sidebar/DocumentsRow";
+import ImagePreviewModal from "../../components/ImagePreviewModal";
 
 const ProfileScreen: React.FC = () => {
   const dispatch = useDispatch();
   const router = useRouter();
   const { userData, loading } = useSelector((s: RootState) => s.userData);
   const [docsOpen, setDocsOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState<{ uri: string; title?: string } | null>(null);
 
   useEffect(() => {
     if (!userData) {
@@ -37,6 +39,12 @@ const ProfileScreen: React.FC = () => {
       // no-op
     }
   };
+
+  const handleOpenImage = (uri: string, title?: string) => {
+    setImagePreview({ uri, title });
+  };
+
+  const handleCloseImage = () => setImagePreview(null);
 
   const isPartner = userData && isPartnerUser(userData);
 
@@ -74,7 +82,7 @@ const ProfileScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <ProfileCard user={userData} />
+        <ProfileCard user={userData} onImagePress={handleOpenImage} />
 
         <BankingCard bank={userData.bankDetails} />
 
@@ -95,7 +103,7 @@ const ProfileScreen: React.FC = () => {
             style={{ transform: [{ rotate: docsOpen ? "180deg" : "0deg" }] }}
           />
         </TouchableOpacity>
-        {docsOpen ? <DocumentsRow documents={userData.documents} /> : null}
+        {docsOpen ? <DocumentsRow documents={userData.documents} onImagePress={handleOpenImage} /> : null}
 
         <View style={styles.note}>
           <View style={styles.noteHeader}>
@@ -120,6 +128,12 @@ const ProfileScreen: React.FC = () => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      <ImagePreviewModal
+        visible={!!imagePreview?.uri}
+        uri={imagePreview?.uri}
+        title={imagePreview?.title}
+        onClose={handleCloseImage}
+      />
     </View>
   );
 };

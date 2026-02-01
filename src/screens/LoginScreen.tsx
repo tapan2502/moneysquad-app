@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity, StyleSheet } from "react-native"
+import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity, StyleSheet, ScrollView } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
@@ -51,71 +51,78 @@ const LoginScreen: React.FC = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Sign In</Text>
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome Back!</Text>
-            <Text style={styles.welcomeSubtitle}>To keep connected with us please login with your personal info</Text>
-          </View>
-
-          <View style={styles.formSection}>
-            <CustomTextInput
-              name="email"
-              control={control}
-              label="Email Address"
-              placeholder="Email Address"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              error={errors.email}
-              style={styles.input}
-            />
-
-            <CustomTextInput
-              name="password"
-              control={control}
-              label="Password"
-              placeholder="Password"
-              secureTextEntry
-              error={errors.password}
-              style={styles.input}
-            />
-
-            <View style={styles.forgotPasswordContainer}>
-              <TouchableOpacity
-                onPress={() => {
-                  console.log("🔗 [LOGIN] Navigating to Forgot Password")
-                  navigation.navigate("ForgotPassword")
-                }}
-              >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeTitle}>Welcome Back!</Text>
+              <Text style={styles.welcomeSubtitle}>To keep connected with us please login with your personal info</Text>
             </View>
 
-            <LoadingButton
-              title="Sign In"
-              onPress={handleSubmit(onSubmit)}
-              loading={isLoading}
-              style={styles.signInButton}
-            />
+            <View style={styles.formSection}>
+              <CustomTextInput
+                name="email"
+                control={control}
+                label="Email Address"
+                placeholder="Email Address"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={errors.email}
+                style={styles.input}
+              />
 
-            <View style={styles.createAccountContainer}>
-              <Text style={styles.createAccountText}>Don't have an account? </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  console.log("🔗 [LOGIN] Navigating to Register")
-                  navigation.navigate("Register")
-                }}
-              >
-                <Text style={styles.createAccountLink}>Create Account</Text>
-              </TouchableOpacity>
+              <CustomTextInput
+                name="password"
+                control={control}
+                label="Password"
+                placeholder="Password"
+                secureTextEntry
+                error={errors.password}
+                style={styles.input}
+              />
+
+              <View style={styles.forgotPasswordContainer}>
+                <TouchableOpacity
+                  onPress={() => {
+                    console.log("🔗 [LOGIN] Navigating to Forgot Password")
+                    navigation.navigate("ForgotPassword")
+                  }}
+                >
+                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
+
+              <LoadingButton
+                title="Sign In"
+                onPress={handleSubmit(onSubmit)}
+                loading={isLoading}
+                style={styles.signInButton}
+              />
+
+              <View style={styles.createAccountContainer}>
+                <Text style={styles.createAccountText}>Don't have an account? </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    console.log("🔗 [LOGIN] Navigating to Register")
+                    navigation.navigate("Register")
+                  }}
+                >
+                  <Text style={styles.createAccountLink}>Create Account</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       <Snackbar
@@ -142,7 +149,6 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: theme.colors.primary.DEFAULT,
-    paddingBottom: theme.spacing.xxl,
     paddingHorizontal: theme.spacing.xl,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
@@ -165,25 +171,30 @@ const styles = StyleSheet.create({
     textAlign: "left",
     letterSpacing: 0.5,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
     backgroundColor: theme.colors.background.light,
     paddingHorizontal: theme.spacing.xl,
     paddingTop: theme.spacing.xxl,
-    paddingBottom: theme.spacing.lg,
-    justifyContent: "space-between",
+    paddingBottom: theme.spacing.xl,
+    minHeight: 600,
   },
   welcomeSection: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: 32,
     paddingTop: theme.spacing.md,
   },
   welcomeTitle: {
     fontSize: 28,
     fontWeight: "800" as const,
     color: theme.colors.text.light,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 12,
     letterSpacing: -0.6,
-    lineHeight: 34,
+    lineHeight: 36,
   },
   welcomeSubtitle: {
     fontSize: theme.typography.fontSizes.sm,
@@ -193,11 +204,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   formSection: {
-    flex: 1,
-    justifyContent: "center",
+    paddingTop: theme.spacing.md,
   },
   input: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
   },
   forgotPasswordContainer: {
     alignItems: "flex-end",

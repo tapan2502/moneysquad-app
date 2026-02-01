@@ -12,11 +12,12 @@ const formatDate = (s?: string) => {
   return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 const formatCurrency = (n?: number) => {
-  const v = typeof n === 'number' ? n : 0;
-  if (v >= 1e7) return `₹${(v/1e7).toFixed(1)}Cr`;
-  if (v >= 1e5) return `₹${(v/1e5).toFixed(1)}L`;
-  if (v >= 1e3) return `₹${(v/1e3).toFixed(1)}K`;
-  return `₹${v.toLocaleString()}`;
+  if (typeof n !== 'number' || Number.isNaN(n)) return '₹0';
+  const hasFraction = Math.round(n) !== n;
+  return `₹${n.toLocaleString('en-IN', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: hasFraction ? 2 : 0,
+  })}`;
 };
 const getStatusColor = (status?: string) => {
   switch ((status ?? '').toLowerCase()) {

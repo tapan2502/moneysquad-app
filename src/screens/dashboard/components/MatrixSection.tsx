@@ -41,7 +41,7 @@ const MatrixSection: React.FC<MatrixSectionProps> = ({ matrix, isLoading }) => {
     );
   }
 
-  const formatPercentage = (value: number) => `${value}%`;
+  const formatPercentage = (value: number) => `${value.toFixed(2)}%`;
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '₹0';
     if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
@@ -112,7 +112,7 @@ const MatrixSection: React.FC<MatrixSectionProps> = ({ matrix, isLoading }) => {
           <View style={[styles.trendBadge, { backgroundColor: `${trendColor}15` }]}>
             <TrendIcon size={10} color={trendColor} strokeWidth={2.5} />
             <Text style={[styles.trendText, { color: trendColor }]}>
-              {safeDeltaPercentage >= 0 ? '+' : ''}{safeDeltaPercentage.toFixed(1)}%
+              {safeDeltaPercentage >= 0 ? '+' : ''}{safeDeltaPercentage.toFixed(2)}%
             </Text>
           </View>
         </View>

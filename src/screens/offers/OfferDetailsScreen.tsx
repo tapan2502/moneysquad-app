@@ -12,7 +12,6 @@ import {
   Dimensions,
   StatusBar,
   Pressable,
-  Modal,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRoute, useNavigation } from "@react-navigation/native"
@@ -33,11 +32,11 @@ import {
   TrendingUp,
   ImageOff,
   Maximize2,
-  X,
 } from "lucide-react-native"
 import * as Clipboard from "expo-clipboard"
 import { Snackbar } from "react-native-paper"
 import type { BankOffer } from "../../redux/slices/offersSlice"
+import ImagePreviewModal from "../../components/ImagePreviewModal"
 
 const { height } = Dimensions.get("window")
 
@@ -316,29 +315,12 @@ const OfferDetailsScreen: React.FC = () => {
         <View style={{ height: 28 }} />
       </ScrollView>
 
-      {hasImage && (
-        <Modal
-          visible={isImageModalVisible}
-          onRequestClose={handleCloseImageModal}
-          animationType="fade"
-          transparent
-        >
-          <View style={styles.imageModalBackdrop}>
-            <Pressable style={styles.modalBackdropTouchable} onPress={handleCloseImageModal} />
-            <View style={styles.imageModalContent}>
-              <TouchableOpacity
-                style={styles.imageModalCloseButton}
-                onPress={handleCloseImageModal}
-                accessibilityRole="button"
-                accessibilityLabel="Close image preview"
-              >
-                <X size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-              <Image source={{ uri: offer.bankImage }} style={styles.imageModal} resizeMode="contain" />
-            </View>
-          </View>
-        </Modal>
-      )}
+      <ImagePreviewModal
+        visible={isImageModalVisible && hasImage}
+        uri={offer.bankImage}
+        onClose={handleCloseImageModal}
+        title={offer.bankName}
+      />
 
       {/* Snackbar */}
       <Snackbar
@@ -600,45 +582,6 @@ const styles = StyleSheet.create({
   copyButtonText: { fontSize: 15, color: "#FFFFFF", fontWeight: "900" },
 
   snackbar: { backgroundColor: "#4F46E5" },
-  imageModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(7, 11, 24, 0.94)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  modalBackdropTouchable: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  imageModalContent: {
-    width: "100%",
-    maxWidth: 420,
-    backgroundColor: "#0B1020",
-    borderRadius: 18,
-    padding: 18,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  imageModal: {
-    width: "100%",
-    height: height * 0.5,
-    borderRadius: 12,
-  },
-  imageModalCloseButton: {
-    position: "absolute",
-    top: 14,
-    right: 14,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(15, 23, 42, 0.85)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
 })
 
 export default OfferDetailsScreen

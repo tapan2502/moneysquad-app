@@ -7,22 +7,29 @@ import { Linking, Platform, Alert } from 'react-native';
  */
 export const openURLSafe = async (url: string, errorMessage?: string): Promise<boolean> => {
   try {
-    // Check if the URL can be opened
+    // Check if the URL can be opened.
+    // On some Android production builds, canOpenURL may return false for common schemes (tel/mailto)
+    // unless they are explicitly whitelisted via package visibility. We attempt a direct open as a fallback.
     const supported = await Linking.canOpenURL(url);
 
     if (supported) {
       await Linking.openURL(url);
       return true;
-    } else {
-      if (errorMessage) {
-        Alert.alert('Cannot Open', errorMessage);
-      }
-      return false;
     }
+
+    if (Platform.OS === 'android') {
+      await Linking.openURL(url);
+      return true;
+    }
+
+    if (errorMessage) {
+      Alert.alert('Cannot Open', errorMessage);
+    }
+    return false;
   } catch (error) {
     console.error('Error opening URL:', error);
     if (errorMessage) {
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Cannot Open', errorMessage);
     }
     return false;
   }

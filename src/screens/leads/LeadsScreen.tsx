@@ -235,7 +235,7 @@ const LeadsScreen = () => {
         data={filteredLeads}
         keyExtractor={(item) => (item?.id ?? (item as any)?._id ?? item.leadId)}
         renderItem={({ item }) => <LeadCard lead={item} onPress={handleLeadPress} />}
-        contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(24, insets.bottom + 16) }]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(80, insets.bottom + 60) }]}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={handleRefresh} colors={['#4F46E5']} tintColor="#4F46E5" />}

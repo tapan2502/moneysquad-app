@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
-    "slug": "bolt-expo-nativewind",
+    "name": "MoneySquad",
+    "slug": "moneysquad-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,7 +12,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.tapan25.bolt",
+      "package": "com.altmoney.moneysquad",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FFFFFF"
@@ -48,7 +48,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "bab227a6-1f63-435f-aeb1-9647dcd643ea"
+        "projectId": "3b08015f-cf1c-4a47-aaac-f7ec94913d3d"
       }
     }
   }

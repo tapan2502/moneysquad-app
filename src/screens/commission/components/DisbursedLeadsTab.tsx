@@ -224,20 +224,22 @@ const DisbursedLeadsTab: React.FC<Props> = ({ data, isLoading, onRefresh }) => {
         </View>
       </View>
 
-      <FlatList
-        data={filteredData}
-        keyExtractor={(it) => it._id}
-        renderItem={({ item }) => <Row item={item} onViewDetails={handleViewDetails} />}
-        ItemSeparatorComponent={() => <View style={styles.sep} />}
-        contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} colors={["#4F46E5"]} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No disbursed leads</Text>
-            <Text style={styles.emptySub}>Disbursed leads will appear here</Text>
-          </View>
-        }
-      />
+      <View style={styles.card}>
+        <FlatList
+          data={filteredData}
+          keyExtractor={(it) => it._id}
+          renderItem={({ item }) => <Row item={item} onViewDetails={handleViewDetails} />}
+          ItemSeparatorComponent={() => <View style={styles.sep} />}
+          contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} colors={["#4F46E5"]} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>No disbursed leads</Text>
+              <Text style={styles.emptySub}>Disbursed leads will appear here</Text>
+            </View>
+          }
+        />
+      </View>
 
       <PayoutDetailsModal
         visible={payoutModalVisible}
@@ -290,12 +292,18 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     fontWeight: "600",
   },
-  list: {
+  card: {
+    flex: 1,
     backgroundColor: "#fff",
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#EEF2F7",
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  listContent: {
     paddingHorizontal: 8,
+    paddingBottom: 20,
   },
   row: { flexDirection: "row", paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", justifyContent: "space-between" },
   sep: { height: 1, backgroundColor: "#F1F5F9" },

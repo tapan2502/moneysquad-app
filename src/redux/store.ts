@@ -3,7 +3,7 @@ import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { combineReducers } from '@reduxjs/toolkit';
 
-import authSlice from './slices/authSlice';
+import authSlice, { logout } from './slices/authSlice';
 import appSlice from './slices/appSlice';
 import registrationSlice from './slices/registrationSlice';
 import dashboardSlice from './slices/dashboardSlice';
@@ -14,6 +14,7 @@ import associateSlice from './slices/associateSlice';
 import resourceAndSupportSlice from './slices/resourceAndSupportSlice';
 import userDataSlice from './slices/userDataSlice';
 import commissionSlice from './slices/commissionSlice';
+import { registerLogoutCallback } from '../utils/api';
 
 const persistConfig = {
   key: 'root',
@@ -45,6 +46,11 @@ export const store = configureStore({
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
     }),
+});
+
+// Register global logout callback to handle token expiry
+registerLogoutCallback(() => {
+  store.dispatch(logout());
 });
 
 export const persistor = persistStore(store);

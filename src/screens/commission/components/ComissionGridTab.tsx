@@ -204,7 +204,7 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
                   const desiredX = pageX - 120 // half of pop width guess
                   const clampedX = Math.max(12, Math.min(desiredX, SCREEN_W - 12 - 240))
                   setPopover((prev) =>
-                    prev?.id === item._id && prev.visible
+                    prev && prev.id === item._id && prev.visible
                       ? null
                       : { id: item._id, text: item.remark, x: clampedX, y: pageY, visible: true },
                   )
@@ -236,7 +236,7 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
   }
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
+    <View style={styles.mainContainer}>
       {/* Sleek segmented control (no big title/description) */}
       <View style={styles.segment}>
         <TabButton label="Personal" active={subTab === "individual"} onPress={() => setSubTab("individual")} />
@@ -262,7 +262,7 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
             renderItem={renderRow}
             keyExtractor={(it) => it._id}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 8 }}
+            contentContainerStyle={{ paddingBottom: 20 }}
             extraData={popover?.id}
           />
         )}
@@ -297,6 +297,10 @@ const ComissionGridTab: React.FC<Props> = ({ plans, isLeadSharingRole, userCommi
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    padding: 16,
+  },
   // Sleek segmented control
   segment: {
     flexDirection: "row",
@@ -326,11 +330,13 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: "#fff" },
 
   tableCard: {
+    flex: 1,
     backgroundColor: "#fff",
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#EEF2F7",
+    marginBottom: 8,
   },
   sheetHeaderRow: {
     flexDirection: "row",
