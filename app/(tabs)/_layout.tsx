@@ -2,8 +2,31 @@ import { useCallback } from "react"
 import { Tabs } from "expo-router"
 import { View, Text } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Menu, LayoutDashboard, Gift, DollarSign, Users } from "lucide-react-native"
+import { LayoutDashboard, Gift, DollarSign, Users } from "lucide-react-native"
 import { useSidebar } from "@/src/components/sidebar/SidebarProvider"
+
+const MenuIcon = ({ focused }: { focused: boolean }) => {
+  const barColor = focused ? "#00B9AE" : "#FFFFFF"
+
+  return (
+    <View style={{ width: 24, height: 24, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ gap: 4, alignItems: "center" }}>
+        {[0, 1, 2].map((idx) => (
+          <View
+            key={idx}
+            style={{
+              width: idx === 1 ? 18 : 16,
+              height: 3,
+              borderRadius: 12,
+              backgroundColor: barColor,
+              opacity: focused ? 1 : 0.9,
+            }}
+          />
+        ))}
+      </View>
+    </View>
+  )
+}
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
@@ -168,9 +191,7 @@ export default function TabLayout() {
         name="menu"
         options={{
           title: "Menu",
-          tabBarIcon: ({ focused }) => (
-            <Menu size={24} color={focused ? "#00B9AE" : "#FFFFFF"} strokeWidth={2.2} />
-          ),
+          tabBarIcon: ({ focused }) => <MenuIcon focused={focused} />,
           tabBarLabel: ({ focused }) => (
             <Text
               style={{
@@ -193,28 +214,32 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          href: null,
+          href: "/profile",
+          tabBarItemStyle: { display: "none" },
         }}
       />
 
       <Tabs.Screen
         name="team"
         options={{
-          href: null,
+          href: "/team",
+          tabBarItemStyle: { display: "none" },
         }}
       />
 
       <Tabs.Screen
         name="support"
         options={{
-          href: null,
+          href: "/support",
+          tabBarItemStyle: { display: "none" },
         }}
       />
 
       <Tabs.Screen
         name="product-info"
         options={{
-          href: null,
+          href: "/product-info",
+          tabBarItemStyle: { display: "none" },
         }}
       />
     </Tabs>
