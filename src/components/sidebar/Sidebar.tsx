@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { X, LogOut, ChevronRight, User, CircleHelp as HelpCircle, Package, Users } from "lucide-react-native"
 import { useRouter } from "expo-router"
 import type { RootState } from "../../redux/store"
-import { fetchUserData, isPartnerUser } from "../../redux/slices/userDataSlice"
+import { fetchUserData, isPartnerUser, isAdminUser, isManagerUser, isAssociateUser } from "../../redux/slices/userDataSlice"
 import { logout } from "../../redux/slices/authSlice"
 import type { AuthenticatedStackParamList } from "../../navigation/types"
 
@@ -80,6 +80,16 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
     }, 250)
   }
 
+  const getUserName = () => {
+    if (!userData) return "User"
+    if (isPartnerUser(userData)) return userData.basicInfo.fullName
+    if (isAdminUser(userData) || isManagerUser(userData) || isAssociateUser(userData)) {
+      return `${userData.firstName} ${userData.lastName}`.trim() || "User"
+    }
+    return "User"
+  }
+
+  const userName = getUserName()
   const isPartner = userData && isPartnerUser(userData)
 
   if (!localVisible) return null
@@ -130,13 +140,13 @@ const Sidebar: React.FC<Props> = ({ visible, onClose }) => {
                 <View style={styles.profileSection}>
                   <View style={styles.avatarContainer}>
                     <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{userData.name?.charAt(0).toUpperCase() || "U"}</Text>
+                      <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase() || "U"}</Text>
                     </View>
                     <View style={styles.onlineBadge} />
                   </View>
                   <View style={styles.userInfo}>
                     <Text style={styles.userName} numberOfLines={1}>
-                      {userData.name}
+                      {userName}
                     </Text>
                     <Text style={styles.userEmail} numberOfLines={1}>
                       {userData.email}
